@@ -1,0 +1,2 @@
+# YiyunAFKpond
+为Minecraft服务器打造的新一代高性能全新挂机奖励系统，让挂机也成为一种享受
