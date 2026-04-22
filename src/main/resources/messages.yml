@@ -1,0 +1,122 @@
+# YiyunAFKpond 消息配置文件
+# 颜色格式: &#RRGGBB (Hex) / &e (传统) / <gradient:#87CEEB:#B0E0E6>MiniMessage</gradient>
+# 浅蓝色渐变色系: &#87CEEB(天空蓝) &#B0E0E6(粉蓝) &#ADD8E6(浅蓝) &#6CA6CD(深天蓝)
+
+# ==========================================
+# 玩家消息
+# ==========================================
+player:
+  enter: "&#87CEEB(✧ω✧) 欢迎来到 &#B0E0E6%pool_name% &#87CEEB挂机池~(～￣▽￣)～"
+  leave: "&#87CEEB(｡･ω･｡)ﾉ 感谢使用 &#B0E0E6%pool_name% &#87CEEB挂机池，期待下次光临~"
+  exp-reward: "&#87CEEB(✧ω✧) 你的挂机池正在奖励你 &#B0E0E6{xp_amount} &#87CEEB点经验~(～￣▽￣)～"
+  money-reward: "&#87CEEB(๑•̀ㅂ•́)و✧ 你的挂机池正在奖励你 &#B0E0E6{money_amount} &#87CEEB金币~(～￣▽￣)～"
+  point-reward: "&#87CEEB(๑•̀ㅂ•́)و✧ 你的挂机池正在奖励你 &#B0E0E6{point_amount} &#87CEEB点券~(～￣▽￣)～"
+  exp-limit: "&#87CEEB(｡･ω･｡) 你今天在 &#B0E0E6%pool_name% &#87CEEB挂机池的经验已达挂机池上限~"
+  money-limit: "&#87CEEB(｡･ω･｡) 你今天在 &#B0E0E6%pool_name% &#87CEEB挂机池的金币已达挂机池上限~"
+  point-limit: "&#87CEEB(｡･ω･｡) 你今天在 &#B0E0E6%pool_name% &#87CEEB挂机池的点券已达挂机池上限~"
+  total-exp-limit: "&#6CA6CD(｡･ω･｡) 你今天的经验已达服务器每日总上限~"
+  total-money-limit: "&#6CA6CD(｡･ω･｡) 你今天的金币已达服务器每日总上限~"
+  total-point-limit: "&#6CA6CD(｡･ω･｡) 你今天的点券已达服务器每日总上限~"
+  no-permission: "&#6CA6CD你没有权限进入这个挂机池！"
+  teleport-intercept: "&#6CA6CD您不能直接传送到挂机池区域！"
+
+# ==========================================
+# 管理员消息
+# ==========================================
+admin:
+  pool-created: "&#87CEEB成功创建AFK池: &#B0E0E6%pool_name% &#87CEEB(&#ADD8E6%pool_id%&#87CEEB)"
+  pool-size: "&#87CEEB区域大小: &#B0E0E6%size% &#87CEEB方块"
+  pool-deleted: "&#87CEEB成功删除AFK池: &#B0E0E6%pool_name% &#87CEEB(&#ADD8E6%pool_id%&#87CEEB)"
+  pool-not-found: "&#6CA6CD池不存在: &#ADD8E6%pool_id%"
+  pool-exists: "&#6CA6CD池ID已存在: &#ADD8E6%pool_id%"
+  pool-enabled: "&#87CEEB池已启用: &#B0E0E6%pool_name% &#87CEEB(&#ADD8E6%pool_id%&#87CEEB)"
+  pool-disabled: "&#6CA6CD池已禁用: &#B0E0E6%pool_name% &#87CEEB(&#ADD8E6%pool_id%&#87CEEB)"
+  config-reloaded: "&#87CEEB配置已重载！"
+  player-reset: "&#87CEEB成功重置玩家 &#B0E0E6%player_name% &#87CEEB的数据!"
+  player-not-found: "&#6CA6CD玩家不存在或未在线: &#ADD8E6%player_name%"
+  player-data-not-found: "&#6CA6CD玩家数据不存在: &#ADD8E6%player_name%"
+  selection-not-set: "&#6CA6CD请先使用选区工具选择一个区域！"
+  selection-size: "&#87CEEB选区大小: &#B0E0E6%size% &#87CEEB方块"
+  selection-cleared: "&#87CEEB选区已清除！"
+  invalid-pool-id: "&#6CA6CD无效的池ID！池ID只能包含字母、数字和下划线。"
+  pool-name-too-long: "&#6CA6CD池名称过长！最大长度为 &#ADD8E6%max_length% &#6CA6CD个字符。"
+  pool-id-too-long: "&#6CA6CD池ID过长！最大长度为 &#ADD8E6%max_length% &#6CA6CD个字符。"
+  world-not-found: "&#6CA6CD世界不存在: &#ADD8E6%world_name%"
+  same-coordinates: "&#6CA6CD两个坐标点不能相同！"
+  pool-list-title: "&#87CEEB========== &#B0E0E6挂机池列表 &#87CEEB=========="
+  pool-list-item: "&#B0E0E6%pool_name% &#ADD8E6(&#87CEEB%pool_id%&#ADD8E6) &#87CEEB- &#B0E0E6%world% &#87CEEB- &#B0E0E6%size% 方块 &#87CEEB- &#B0E0E6%status%"
+  pool-status-enabled: "&#87CEEB启用"
+  pool-status-disabled: "&#6CA6CD禁用"
+  no-pools: "&#6CA6CD没有找到任何挂机池！"
+
+# ==========================================
+# 统计消息
+# ==========================================
+stats:
+  player-title: "&#87CEEB========== &#B0E0E6玩家统计: &#87CEEB%player_name% &#87CEEB=========="
+  total-afk-time: "&#87CEEB总挂机时间: &#B0E0E6%time%"
+  total-exp: "&#87CEEB总经验获得: &#B0E0E6%exp%"
+  total-money: "&#87CEEB总金币获得: &#B0E0E6%money% 元"
+  total-point: "&#87CEEB总点券获得: &#B0E0E6%point%"
+  today-exp: "&#87CEEB今日经验: &#B0E0E6%exp%"
+  today-money: "&#87CEEB今日金币: &#B0E0E6%money% 元"
+  today-point: "&#87CEEB今日点券: &#B0E0E6%point%"
+  pond-afk-times: "&#ADD8E6各池挂机时间:"
+  pond-today-exp: "&#ADD8E6各池今日经验:"
+  pond-today-money: "&#ADD8E6各池今日金币:"
+  pond-today-point: "&#ADD8E6各池今日点券:"
+  no-data: "&#6CA6CD无数据"
+  pool-title: "&#87CEEB========== &#B0E0E6池统计: &#87CEEB%pool_name% &#87CEEB(&#ADD8E6%pool_id%&#87CEEB) =========="
+  pool-status: "&#87CEEB状态: &#B0E0E6%status%"
+  exp-interval: "&#87CEEB经验间隔: &#B0E0E6%interval% 秒"
+  money-interval: "&#87CEEB金币间隔: &#B0E0E6%interval% 秒"
+  point-interval: "&#87CEEB点券间隔: &#B0E0E6%interval% 秒"
+  xp-rate: "&#87CEEB经验倍率: &#B0E0E6%rate%"
+  money-rate: "&#87CEEB金币倍率: &#B0E0E6%rate%"
+  point-rate: "&#87CEEB点券倍率: &#B0E0E6%rate%"
+  exp-max-daily: "&#87CEEB每日经验上限: &#B0E0E6%max%"
+  money-max-daily: "&#87CEEB每日金币上限: &#B0E0E6%max% 元"
+  point-max-daily: "&#87CEEB每日点券上限: &#B0E0E6%max%"
+  online-players: "&#87CEEB当前在线玩家: &#B0E0E6%count%"
+  total-time: "&#87CEEB总挂机时间: &#B0E0E6%time%"
+  global-title: "&#87CEEB========== &#B0E0E6全局统计 &#87CEEB=========="
+  total-players: "&#87CEEB总玩家数: &#B0E0E6%count%"
+  total-pools: "&#87CEEB总池数: &#B0E0E6%count%"
+  global-total-afk-time: "&#87CEEB总挂机时间: &#B0E0E6%time%"
+  total-exp-gained: "&#87CEEB总经验获得: &#B0E0E6%exp%"
+  total-money-gained: "&#87CEEB总金币获得: &#B0E0E6%money% 元"
+  total-point-gained: "&#87CEEB总点券获得: &#B0E0E6%point%"
+  pool-usage: "&#ADD8E6各池使用情况:"
+  pool-usage-item: "  &#B0E0E6%pool_name%&#ADD8E6: &#87CEEB%count% 玩家"
+
+# ==========================================
+# 错误消息
+# ==========================================
+error:
+  unknown-command: "&#6CA6CD未知命令！使用 /yap help 查看帮助。"
+  no-permission: "&#6CA6CD你没有权限执行此命令！"
+  player-must-be-online: "&#6CA6CD玩家必须在线！"
+  invalid-arguments: "&#6CA6CD无效的参数！使用 /yap help 查看帮助。"
+  config-load-failed: "&#6CA6CD配置文件加载失败！"
+  database-connection-failed: "&#6CA6CD数据库连接失败！"
+  save-failed: "&#6CA6CD保存数据失败！"
+  load-failed: "&#6CA6CD加载数据失败！"
+
+# ==========================================
+# 帮助消息
+# ==========================================
+help:
+  title: "&#87CEEB========== &#B0E0E6YiyunAFKpond 帮助 &#87CEEB=========="
+  page: "&#87CEEB页数: &#B0E0E6%page%/%total_pages%"
+  command-format: "&#B0E0E6%command% &#ADD8E6- &#87CEEB%description%"
+  next-page: "&#87CEEB使用 /yap help %next_page% 查看下一页"
+  prev-page: "&#87CEEB使用 /yap help %prev_page% 查看上一页"
+
+# ==========================================
+# 时间格式
+# ==========================================
+time:
+  day: "%d天%d小时%d分%d秒"
+  hour: "%d小时%d分%d秒"
+  minute: "%d分%d秒"
+  second: "%d秒"

@@ -1,0 +1,109 @@
+name: YiyunAFKpond
+version: 1.0.0
+author: Chun2919089965
+description: 轻量化挂机池插件
+main: com.yiyunafkpond.YiyunAFKpond
+api-version: "1.20"
+prefix: YiyunAFKpond
+load: STARTUP
+folia-supported: true
+website: https://github.com/Chun2919089965/YiyunAFKpond
+commands:
+  yiyunafkpond:
+    description: YiyunAFKpond 主命令
+    aliases: [yafkpond, yafk]
+    usage: /yiyunafkpond <子命令> [参数]
+    permission: yiyunafkpond.use
+    permission-message: "&#6CA6CD您没有权限执行此命令"
+
+permissions:
+  yiyunafkpond.use:
+    description: 使用 YiyunAFKpond 插件的基本权限
+    default: true
+  yiyunafkpond.user:
+    description: 查看帮助信息的权限
+    default: true
+  yiyunafkpond.admin:
+    description: YiyunAFKpond 管理员权限
+    default: op
+    children:
+      yiyunafkpond.admin.create: true
+      yiyunafkpond.admin.edit: true
+      yiyunafkpond.admin.delete: true
+      yiyunafkpond.admin.list: true
+      yiyunafkpond.admin.info: true
+      yiyunafkpond.admin.select: true
+      yiyunafkpond.admin.reload: true
+      yiyunafkpond.admin.toggle: true
+      yiyunafkpond.admin.debug: true
+      yiyunafkpond.admin.tp: true
+      yiyunafkpond.admin.player: true
+      yiyunafkpond.admin.stats: true
+      yiyunafkpond.admin.reset: true
+  yiyunafkpond.admin.create:
+    description: 创建挂机池的权限
+    default: op
+  yiyunafkpond.admin.edit:
+    description: 编辑挂机池的权限
+    default: op
+  yiyunafkpond.admin.delete:
+    description: 删除挂机池的权限
+    default: op
+  yiyunafkpond.admin.list:
+    description: 列出挂机池的权限
+    default: op
+  yiyunafkpond.admin.info:
+    description: 查看挂机池信息的权限
+    default: op
+  yiyunafkpond.admin.select:
+    description: 使用选区工具的权限
+    default: op
+  yiyunafkpond.admin.reload:
+    description: 重载插件配置的权限
+    default: op
+  yiyunafkpond.admin.toggle:
+    description: 启用/禁用挂机池的权限
+    default: op
+  yiyunafkpond.admin.debug:
+    description: 切换调试模式的权限
+    default: op
+  yiyunafkpond.admin.tp:
+    description: 传送到挂机池的权限
+    default: op
+  yiyunafkpond.admin.player:
+    description: 管理玩家数据的权限
+    default: op
+  yiyunafkpond.admin.stats:
+    description: 查看统计数据的权限
+    default: op
+  yiyunafkpond.admin.reset:
+    description: 重置玩家数据的权限
+    default: op
+  yiyunafkpond.bypass.teleport:
+    description: 绕过传送检测的权限
+    default: op
+  yiyunafkpond.pool.*:
+    description: 进入所有挂机池的权限
+    default: op
+  yiyunafkpond.reward.money:
+    description: 获得金币奖励的权限
+    default: true
+  yiyunafkpond.reward.point:
+    description: 获得点券奖励的权限
+    default: true
+  yiyunafkpond.reward.commands:
+    description: 执行自定义指令奖励的权限
+    default: true
+  yiyunafkpond.performance:
+    description: 查看性能监控的权限
+    default: op
+
+softdepend:
+  - Vault
+  - PlaceholderAPI
+  - PlayerPoints
+
+libraries:
+  - com.zaxxer:HikariCP:5.1.0
+  - mysql:mysql-connector-java:8.0.33
+  - org.xerial:sqlite-jdbc:3.43.2.1

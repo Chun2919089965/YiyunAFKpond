@@ -1,0 +1,93 @@
+# YiyunAFKpond 核心配置文件
+
+# 核心设置
+core:
+  debug: false          # 调试模式，启用后输出详细日志
+  auto-complete: true   # 自动补全缺失配置项
+
+# 数据存储设置
+storage:
+  type: yaml            # 存储类型: yaml / sqlite / mysql
+  prefix: yiyunafkpond_ # 数据库表前缀 (sqlite/mysql 通用)
+  mysql:                # MySQL配置 (仅type为mysql时生效)
+    host: localhost
+    port: 3306
+    database: yiyunafkpond
+    username: root
+    password: password
+    useConnectionPool: true   # 是否使用连接池 (需要HikariCP)
+    pool-size: 10             # 连接池最大连接数
+    pool-min-idle: 2          # 连接池最小空闲连接数
+    connection-timeout: 30000 # 连接超时时间(毫秒)
+    idle-timeout: 600000      # 空闲连接超时时间(毫秒)
+    max-lifetime: 1800000     # 连接最大存活时间(毫秒)
+
+# 服务器总上限 (0表示无上限)
+server-limits:
+  total-exp-daily: 0      # 所有池每日总经验上限
+  total-money-daily: 100000.0   # 所有池每日总金币上限
+  total-point-daily: 100000.0   # 所有池每日总点券上限
+
+# 每日重置设置
+reset:
+  enabled: true        # 是否启用每日重置
+  time: "00:00"        # 重置时间 (24小时制)
+
+# 显示设置
+display:
+  update-interval: 1   # UI更新间隔(秒)
+  # 玩家消息显示模式: chat(聊天框) / actionbar(动作栏)
+  # 影响范围: 进入/离开消息、奖励消息、上限提示消息
+  player-message-mode: chat
+  # 颜色格式支持:
+  #   传统颜色码: &e, &6, &a 等
+  #   Hex颜色码: &#87CEEB, &#B0E0E6 等（浅蓝色渐变色系）
+  #   MiniMessage标签: <gradient:#87CEEB:#B0E0E6>渐变</gradient> 等
+  bossbar:
+    enabled: true      # 是否启用BossBar
+    # 每种奖励类型独立显示一条BossBar，达到每日上限后自动隐藏
+    hide-when-max: true  # 达到每日上限后隐藏该条BossBar
+    hide-when-no-limit: true  # 无每日上限时隐藏该条BossBar
+    style: NOTCHED_20  # 样式: PROGRESS/NOTCHED_6/NOTCHED_10/NOTCHED_12/NOTCHED_20
+    dynamic-color: true  # 动态颜色 (根据进度自动变色: 蓝→绿→黄→红)
+    # 可用占位符: {pool_name}, {pool_id}, {pond_today_exp}, {pond_exp_max},
+    #   {pond_today_money}, {pond_money_max}, {pond_today_point}, {pond_point_max},
+    #   {today_exp}, {today_money}, {today_point},
+    #   {exp_rate}, {money_rate}, {point_rate}, {exp}, {money}, {point}
+    exp:
+      title: "&#87CEEB【{pool_name}】 &#B0E0E6经验: &#ADD8E6{pond_today_exp}/&#87CEEB{pond_exp_max}"
+      color: BLUE     # 默认颜色 (dynamic-color开启时自动覆盖)
+    money:
+      title: "&#87CEEB【{pool_name}】 &#B0E0E6金币: &#ADD8E6{pond_today_money}/&#87CEEB{pond_money_max}"
+      color: BLUE     # 默认颜色 (dynamic-color开启时自动覆盖)
+    point:
+      title: "&#87CEEB【{pool_name}】 &#B0E0E6点券: &#ADD8E6{pond_today_point}/&#87CEEB{pond_point_max}"
+      color: BLUE     # 默认颜色 (dynamic-color开启时自动覆盖)
+  actionbar:
+    enabled: false     # 是否启用ActionBar
+    # 可用占位符: {pool_name}, {pool_id}, {exp}, {money}, {point},
+    #   {today_exp}, {today_money}, {today_point},
+    #   {pond_today_exp}, {pond_today_money}, {pond_today_point},
+    #   {online_players}, {exp_max}, {money_max}, {point_max},
+    #   {pond_exp_max}, {pond_money_max}, {pond_point_max},
+    #   {exp_rate}, {money_rate}, {point_rate}
+    format: "&#B0E0E6【{pool_name}】 &#87CEEB+{exp} 经验 &#ADD8E6| &#87CEEB+{money} 金币"
+  title:
+    enabled: true      # 是否启用Title提示
+    enter-title: "&#87CEEB欢迎来到 &#B0E0E6{pool_name}"
+    enter-subtitle: "&#ADD8E6享受您的挂机时光~"
+    leave-title: "&#87CEEB感谢光临"
+    leave-subtitle: "&#ADD8E6期待下次再见~"
+    fade-in: 10        # 淡入时间(tick)
+    stay: 40           # 停留时间(tick)
+    fade-out: 10       # 淡出时间(tick)
+
+# 安全设置
+security:
+  teleport-intercept:
+    enabled: true      # 是否拦截传送到挂机池区域
+    message: "&#6CA6CD不能直接传送到挂机池区域！"
+
+# 统计设置
+stats:
+  bstats-enabled: true  # 是否启用 bStats 统计 (默认开启，帮助开发者了解插件使用情况)
