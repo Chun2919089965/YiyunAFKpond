@@ -67,6 +67,7 @@ public class CreateCommand implements SubCommand {
             plugin.getSelectionManager().clearSelection(player);
             plugin.getPondManager().savePonds(true);
             plugin.getRewardManager().startPoolRewardTasks(pond);
+            plugin.rescanPlayersInPonds();
             plugin.getAuditLogger().logPoolCreate(sender, poolId, poolName);
         } else {
             plugin.sendPlayerMessage(player, "&#6CA6CD创建AFK池失败！");
