@@ -247,11 +247,14 @@ public class YiyunAFKpond extends JavaPlugin {
 
             if (!securityManager.canPlayerEnterPool(player, pond)) continue;
 
+            if (!securityManager.canPlayerEnterPoolByIp(player, pond)) continue;
+
             PlayerData playerData = dataManager.getOrCreatePlayerData(player);
             if (playerData == null) continue;
 
             playerData.setCurrentPondId(pond.getId());
             playerData.setAfk(true);
+            securityManager.onPlayerEnterPool(player, pond.getId());
             uiManager.registerPlayerForUpdate(player);
             dataManager.queuePlayerDataSave(playerData);
 
@@ -281,6 +284,7 @@ public class YiyunAFKpond extends JavaPlugin {
             bStatsManager.reload();
         }
 
+        securityManager.clearIpIndex();
         rescanPlayersInPonds();
 
         getLogger().info("新配置已成功应用!");
