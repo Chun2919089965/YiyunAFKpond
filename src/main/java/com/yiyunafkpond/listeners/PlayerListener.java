@@ -70,6 +70,7 @@ public class PlayerListener implements Listener {
         
         plugin.getUiManager().onPlayerQuit(player);
         plugin.getRewardManager().cleanupPlayerData(uuid);
+        plugin.getSecurityManager().onPlayerQuit(uuid);
         
         if (currentPondId != null && playerData != null) {
             Pond pond = plugin.getPondManager().getPond(currentPondId);
@@ -183,10 +184,20 @@ public class PlayerListener implements Listener {
                 if (event != null) event.setCancelled(true);
                 return;
             }
+            if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, newPond)) {
+                plugin.sendPlayerMessage(player, plugin.getSecurityManager().getIpLimitMessage());
+                if (event != null) event.setCancelled(true);
+                return;
+            }
             handlePlayerEnterPool(player, newPond, playerData, event != null);
         } else if (currentPond != null && newPond != null && !currentPond.getId().equals(newPond.getId())) {
             if (!plugin.getSecurityManager().canPlayerEnterPool(player, newPond)) {
                 plugin.sendPlayerMessage(player, plugin.getLanguageManager().getMessage("player.no-permission"));
+                if (event != null) event.setCancelled(true);
+                return;
+            }
+            if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, newPond)) {
+                plugin.sendPlayerMessage(player, plugin.getSecurityManager().getIpLimitMessage());
                 if (event != null) event.setCancelled(true);
                 return;
             }
@@ -198,6 +209,7 @@ public class PlayerListener implements Listener {
         playerData.setCurrentPondId(pond.getId());
         playerData.setAfk(true);
         
+        plugin.getSecurityManager().onPlayerEnterPool(player, pond.getId());
         plugin.getUiManager().registerPlayerForUpdate(player);
         plugin.getDataManager().queuePlayerDataSave(playerData);
         
@@ -214,6 +226,7 @@ public class PlayerListener implements Listener {
         playerData.setCurrentPondId(null);
         playerData.setAfk(false);
         
+        plugin.getSecurityManager().onPlayerLeavePool(player, pondId);
         plugin.getUiManager().unregisterPlayerForUpdate(player);
         plugin.getDataManager().queuePlayerDataSave(playerData);
         
@@ -232,6 +245,7 @@ public class PlayerListener implements Listener {
     private void handlePlayerSwitchPool(Player player, Pond oldPond, Pond newPond, PlayerData playerData, boolean sendMessage) {
         playerData.setCurrentPondId(newPond.getId());
         
+        plugin.getSecurityManager().onPlayerSwitchPool(player, oldPond.getId(), newPond.getId());
         plugin.getDataManager().queuePlayerDataSave(playerData);
         
         if (sendMessage) {
