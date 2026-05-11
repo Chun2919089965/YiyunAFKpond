@@ -129,6 +129,7 @@ public class PlayerListener implements Listener {
         Pond pond = plugin.getPondManager().getPondByLocation(respawnLocation);
         if (pond != null) {
             if (!plugin.getSecurityManager().canPlayerEnterPool(player, pond)) return;
+            if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, pond)) return;
             
             PlayerData playerData = plugin.getDataManager().getOrCreatePlayerData(player);
             handlePlayerEnterPool(player, pond, playerData, true);
