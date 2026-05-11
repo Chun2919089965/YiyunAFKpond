@@ -6,7 +6,7 @@
 
     <groupId>com.yiyunafkpond</groupId>
     <artifactId>YiyunAFKpond</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <name>YiyunAFKpond</name>
