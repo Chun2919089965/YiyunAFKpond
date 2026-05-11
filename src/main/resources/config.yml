@@ -87,6 +87,12 @@ security:
   teleport-intercept:
     enabled: true      # 是否拦截传送到挂机池区域
     message: "&#6CA6CD不能直接传送到挂机池区域！"
+  ip-limit:
+    enabled: false     # 是否启用IP限制 (防止小号挂机)
+    mode: global       # 限制模式: global(全局限制) / per-pool(仅限制同一池)
+    max-per-ip: 1      # 同IP最多允许几个玩家同时在挂机池中
+    bypass-permission: yiyunafkpond.bypass.ip  # 绕过IP限制的权限
+    message: "&#6CA6CD检测到同IP已有其他角色在挂机池中，已阻止进入！"
 
 # 统计设置
 stats:
