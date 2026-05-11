@@ -156,6 +156,11 @@ public class SecurityManager {
         onPlayerEnterPool(player, newPondId);
     }
 
+    public void clearIpIndex() {
+        ipPoolIndex.clear();
+        playerIpCache.clear();
+    }
+
     private int getIpCountForPool(String ip, String pondId) {
         Map<String, Set<UUID>> poolMap = ipPoolIndex.get(ip);
         if (poolMap == null) return 0;
