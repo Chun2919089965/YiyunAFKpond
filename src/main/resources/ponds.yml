@@ -1,0 +1,59 @@
+# YiyunAFKpond 挂机池配置文件
+# 
+# 创建挂机池方法:
+# 1. 游戏内使用 /yafk selection wand 获取选区工具
+# 2. 左键设置第一个点，右键设置第二个点
+# 3. 使用 /yafk create <池ID> <名称> 创建挂机池
+#
+# 可用占位符: {pool_name} - 池名称, {player} - 玩家名
+# 颜色格式支持: &e 传统颜色码, &#87CEEB Hex颜色(浅蓝渐变), <gradient:#87CEEB:#B0E0E6>MiniMessage渐变</gradient>
+
+ponds:
+  # 示例挂机池 (可删除或修改)
+  example-pond:
+    name: "示例挂机池"
+    world: "world"
+    
+    # 挂机池区域坐标 (立方体区域)
+    minPoint: { x: 0, y: 60, z: 0 }
+    maxPoint: { x: 10, y: 70, z: 10 }
+    
+    enabled: false              # 是否启用此挂机池
+    
+    # ===== 经验奖励 =====
+    expEnabled: true            # 是否启用经验奖励
+    expInterval: 5             # 发放间隔(秒)
+    expRandomMin: 5            # 随机最小值
+    expRandomMax: 20           # 随机最大值
+    expMaxDaily: 2000          # 每日上限 (0=无上限)
+    
+    # ===== 金币奖励 =====
+    moneyEnabled: true         # 是否启用金币奖励
+    moneyInterval: 30          # 发放间隔(秒)
+    moneyRandomMin: 5.0        # 随机最小值
+    moneyRandomMax: 15.0       # 随机最大值
+    moneyMaxDaily: 5000.0      # 每日上限 (0=无上限)
+    
+    # ===== 点券奖励 =====
+    pointEnabled: false        # 是否启用点券奖励 (需要PlayerPoints插件)
+    pointInterval: 60          # 发放间隔(秒)
+    pointRandomMin: 1.0        # 随机最小值
+    pointRandomMax: 5.0        # 随机最大值
+    pointMaxDaily: 100.0       # 每日上限 (0=无上限)
+    
+    # ===== 权限设置 =====
+    requiredPermission: null   # 进入权限 (null=无需权限)
+    # 例如: requiredPermission: "yiyunafkpond.pool.vip"
+    
+    # ===== 自定义命令奖励 =====
+    # 每次奖励周期到达时，对池内每个玩家执行以下命令
+    # 可用占位符: {player} - 玩家名, {uuid} - 玩家UUID, {pool_id} - 池ID, {pool_name} - 池名称
+    # 示例:
+    #   - "give {player} diamond 1"
+    #   - "say {player} 正在 {pool_name} 挂机池挂机！"
+    commands: []
+    commandInterval: 120       # 命令执行间隔(秒)
+    
+    # ===== 提示消息 =====
+    enterMessage: "&#87CEEB欢迎来到 &#B0E0E6{pool_name}&#87CEEB！"
+    leaveMessage: "&#87CEEB感谢使用，下次再见！"
