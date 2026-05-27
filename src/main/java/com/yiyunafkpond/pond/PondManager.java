@@ -419,10 +419,7 @@ public class PondManager {
     
     // 删除池
     public void removePond(String id) {
-        Pond pond = ponds.remove(id);
-        if (pond != null) {
-            removePondFromWorldMap(pond);
-        }
+        deletePond(id);
     }
     
     // 删除池（API用，与ChlAFKpond兼容）
@@ -434,8 +431,6 @@ public class PondManager {
         }
         return false;
     }
-    
-    // 获取池
     public Pond getPond(String id) {
         return ponds.get(id);
     }
@@ -447,7 +442,7 @@ public class PondManager {
     
     // 获取所有池（兼容ChlAFKpond）
     public Collection<Pond> getAllPonds() {
-        return ponds.values();
+        return List.copyOf(ponds.values());
     }
     
     // 根据位置获取池

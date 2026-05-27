@@ -29,8 +29,8 @@ public class ReloadCommand implements SubCommand {
             long endTime = System.currentTimeMillis();
             plugin.sendPlayerMessage(sender, "&#87CEEB插件重载成功！&#ADD8E6耗时: &#B0E0E6" + (endTime - startTime) + "ms");
         } catch (Exception e) {
-            plugin.sendPlayerMessage(sender, "&#6CA6CD插件重载失败！错误信息: " + e.getMessage());
-            plugin.getLogger().severe("插件重载失败: " + e.getMessage());
+            plugin.sendPlayerMessage(sender, "&#6CA6CD插件重载失败！请查看服务器控制台日志了解详情。");
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "插件重载失败", e);
         }
         return true;
     }

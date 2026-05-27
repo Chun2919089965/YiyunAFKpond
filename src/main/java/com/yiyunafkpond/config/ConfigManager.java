@@ -78,14 +78,6 @@ public class ConfigManager {
         loadConfig();
     }
     
-    // 获取配置值，带默认值
-    public <T> T getValue(String path, T defaultValue) {
-        if (config.contains(path)) {
-            return (T) config.get(path);
-        }
-        return defaultValue;
-    }
-    
     // 设置配置值
     public void setValue(String path, Object value) {
         config.set(path, value);

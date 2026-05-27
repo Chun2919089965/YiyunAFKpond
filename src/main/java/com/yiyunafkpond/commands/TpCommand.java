@@ -2,6 +2,7 @@ package com.yiyunafkpond.commands;
 
 import com.yiyunafkpond.YiyunAFKpond;
 import com.yiyunafkpond.pond.Pond;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -36,7 +37,12 @@ public class TpCommand implements SubCommand {
             return true;
         }
         if (player.hasPermission("yiyunafkpond.bypass.teleport") || player.hasPermission("yiyunafkpond.pond." + pondId)) {
-            player.teleportAsync(pond.getCenterLocation()).thenAccept(success -> {
+            Location center = pond.getCenterLocation();
+            if (center == null) {
+                plugin.sendPlayerMessage(player, "&#6CA6CD该挂机池的世界已卸载，无法传送！");
+                return true;
+            }
+            player.teleportAsync(center).thenAccept(success -> {
                 if (success) {
                     plugin.sendPlayerMessage(player, "&#87CEEB已传送到挂机池：&#B0E0E6" + pond.getName());
                 } else {
@@ -44,7 +50,12 @@ public class TpCommand implements SubCommand {
                 }
             });
         } else {
-            plugin.sendPlayerMessage(player, "&#6CA6CD您没有权限传送到该挂机池！");
+            String requiredPerm = pond.getRequiredPermission();
+            if (requiredPerm != null) {
+                plugin.sendPlayerMessage(player, "&#6CA6CD您没有权限传送到该挂机池！需要权限: " + requiredPerm + " 或 yiyunafkpond.bypass.teleport");
+            } else {
+                plugin.sendPlayerMessage(player, "&#6CA6CD您没有权限传送到该挂机池！需要权限: yiyunafkpond.bypass.teleport");
+            }
         }
         return true;
     }

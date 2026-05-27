@@ -22,18 +22,21 @@ import java.util.*;
 public class PlayerListener implements Listener {
     private final YiyunAFKpond plugin;
     
-    private final boolean titleEnabled;
-    private final String enterTitle;
-    private final String enterSubtitle;
-    private final String leaveTitle;
-    private final String leaveSubtitle;
-    private final Duration titleFadeIn;
-    private final Duration titleStay;
-    private final Duration titleFadeOut;
+    private boolean titleEnabled;
+    private String enterTitle;
+    private String enterSubtitle;
+    private String leaveTitle;
+    private String leaveSubtitle;
+    private Duration titleFadeIn;
+    private Duration titleStay;
+    private Duration titleFadeOut;
     
     public PlayerListener(YiyunAFKpond plugin) {
         this.plugin = plugin;
-        
+        reloadTitleSettings();
+    }
+
+    public void reloadTitleSettings() {
         this.titleEnabled = plugin.getConfig().getBoolean("display.title.enabled", true);
         this.enterTitle = plugin.getConfig().getString("display.title.enter-title", "&#87CEEB欢迎来到 &#B0E0E6{pool_name}");
         this.enterSubtitle = plugin.getConfig().getString("display.title.enter-subtitle", "&#ADD8E6享受您的挂机时光~");

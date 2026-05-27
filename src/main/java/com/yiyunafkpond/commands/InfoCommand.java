@@ -29,7 +29,7 @@ public class InfoCommand implements SubCommand {
         plugin.sendPlayerMessage(sender, "&#5B9BD5ID: &#B0E0E6" + pond.getId());
         plugin.sendPlayerMessage(sender, "&#5B9BD5名称: &#B0E0E6" + pond.getName());
         plugin.sendPlayerMessage(sender, "&#5B9BD5状态: &#B0E0E6" + (pond.isEnabled() ? "启用" : "禁用"));
-        plugin.sendPlayerMessage(sender, "&#5B9BD5世界: &#B0E0E6" + pond.getWorld().getName());
+        plugin.sendPlayerMessage(sender, "&#5B9BD5世界: &#B0E0E6" + pond.getWorldName());
         plugin.sendPlayerMessage(sender, "&#5B9BD5位置: &#B0E0E6X:" + pond.getMinX() + "-" + pond.getMaxX() + ", Y:" + pond.getMinY() + "-" + pond.getMaxY() + ", Z:" + pond.getMinZ() + "-" + pond.getMaxZ());
         plugin.sendPlayerMessage(sender, "&#5B9BD5大小: &#B0E0E6" + pond.getSize() + " 方块");
         plugin.sendPlayerMessage(sender, "&#5B9BD5玩家数量: &#B0E0E6" + plugin.getPondManager().getPlayersInPond(pond).size());

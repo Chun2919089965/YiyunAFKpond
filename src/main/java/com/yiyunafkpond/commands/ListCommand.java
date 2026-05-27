@@ -28,7 +28,7 @@ public class ListCommand implements SubCommand {
                 String status = pond.isEnabled() ? "&#87CEEB启用" : "&#6CA6CD禁用";
                 plugin.sendPlayerMessage(sender, 
                         String.format("&#B0E0E6%s &#ADD8E6- &#87CEEB%s &#ADD8E6| %s &#ADD8E6| 世界: &#B0E0E6%s", 
-                                pond.getId(), pond.getName(), status, pond.getWorld().getName()));
+                                pond.getId(), pond.getName(), status, pond.getWorldName()));
             }
         }
         plugin.sendPlayerMessage(sender, String.format("&#87CEEB===== 共 %d 个AFK池 =====", ponds.size()));

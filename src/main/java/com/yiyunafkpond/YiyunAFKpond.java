@@ -46,6 +46,7 @@ public class YiyunAFKpond extends JavaPlugin {
     private volatile SelectionManager selectionManager;
     private volatile SecurityManager securityManager;
     private volatile UIManager uiManager;
+    private PlayerListener playerListener;
     private YiyunAFKpondAPI api;
     private AuditLogger auditLogger;
     private com.yiyunafkpond.stats.BStatsManager bStatsManager;
@@ -160,7 +161,8 @@ public class YiyunAFKpond extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        playerListener = new PlayerListener(this);
+        getServer().getPluginManager().registerEvents(playerListener, this);
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
     }
 
@@ -280,6 +282,8 @@ public class YiyunAFKpond extends JavaPlugin {
         }
 
         if (uiManager != null) uiManager.reload();
+
+        if (playerListener != null) playerListener.reloadTitleSettings();
 
         if (bStatsManager != null) {
             bStatsManager.reload();

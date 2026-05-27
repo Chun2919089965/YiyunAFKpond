@@ -64,7 +64,7 @@ public class CommandManager implements CommandExecutor {
         SubCommand subCommand = subCommands.get(args[0].toLowerCase());
         
         if (subCommand == null) {
-            plugin.sendPlayerMessage(sender, "&#6CA6CD未知命令! 请使用 /yafk help 查看帮助信息。");
+            plugin.sendPlayerMessage(sender, "&#6CA6CD未知命令: /yafk " + args[0] + "，请使用 /yafk help 查看帮助信息。");
             return true;
         }
         
