@@ -71,6 +71,7 @@ public class PlayerListener implements Listener {
         plugin.getUiManager().onPlayerQuit(player);
         plugin.getRewardManager().cleanupPlayerData(uuid);
         plugin.getSecurityManager().onPlayerQuit(uuid);
+        plugin.getPondManager().removePlayerFromAllPools(uuid);
         
         if (currentPondId != null && playerData != null) {
             Pond pond = plugin.getPondManager().getPond(currentPondId);
@@ -173,111 +174,100 @@ public class PlayerListener implements Listener {
     
     private void handlePoolTransition(Player player, Location from, Location to, PlayerMoveEvent event) {
         PlayerData playerData = plugin.getDataManager().getOrCreatePlayerData(player);
-        
+
         Pond currentPond = plugin.getPondManager().getPondByLocation(from);
         Pond newPond = plugin.getPondManager().getPondByLocation(to);
-        
+
         if (currentPond != null && newPond == null) {
             handlePlayerLeavePool(player, currentPond.getId(), playerData, event != null);
         } else if (currentPond == null && newPond != null) {
-            if (!plugin.getSecurityManager().canPlayerEnterPool(player, newPond)) {
-                plugin.sendPlayerMessage(player, plugin.getLanguageManager().getMessage("player.no-permission"));
-                if (event != null) event.setCancelled(true);
-                return;
-            }
-            if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, newPond)) {
-                plugin.sendPlayerMessage(player, plugin.getSecurityManager().getIpLimitMessage());
-                if (event != null) event.setCancelled(true);
-                return;
-            }
+            if (!canPlayerPassSecurityChecks(player, newPond, event)) return;
             handlePlayerEnterPool(player, newPond, playerData, event != null);
         } else if (currentPond != null && newPond != null && !currentPond.getId().equals(newPond.getId())) {
-            if (!plugin.getSecurityManager().canPlayerEnterPool(player, newPond)) {
-                plugin.sendPlayerMessage(player, plugin.getLanguageManager().getMessage("player.no-permission"));
-                if (event != null) event.setCancelled(true);
-                return;
-            }
-            if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, newPond)) {
-                plugin.sendPlayerMessage(player, plugin.getSecurityManager().getIpLimitMessage());
-                if (event != null) event.setCancelled(true);
-                return;
-            }
+            if (!canPlayerPassSecurityChecks(player, newPond, event)) return;
             handlePlayerSwitchPool(player, currentPond, newPond, playerData, event != null);
         }
+    }
+
+    private boolean canPlayerPassSecurityChecks(Player player, Pond pond, PlayerMoveEvent event) {
+        if (!plugin.getSecurityManager().canPlayerEnterPool(player, pond)) {
+            plugin.sendPlayerMessage(player, plugin.getLanguageManager().getMessage("player.no-permission"));
+            if (event != null) event.setCancelled(true);
+            return false;
+        }
+        if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, pond)) {
+            plugin.sendPlayerMessage(player, plugin.getSecurityManager().getIpLimitMessage());
+            if (event != null) event.setCancelled(true);
+            return false;
+        }
+        return true;
     }
     
     private void handlePlayerEnterPool(Player player, Pond pond, PlayerData playerData, boolean sendMessage) {
         playerData.setCurrentPondId(pond.getId());
         playerData.setAfk(true);
-        
+
         plugin.getSecurityManager().onPlayerEnterPool(player, pond.getId());
+        plugin.getPondManager().addPlayerToPool(pond.getId(), player.getUniqueId());
         plugin.getUiManager().registerPlayerForUpdate(player);
         plugin.getDataManager().queuePlayerDataSave(playerData);
         
         if (sendMessage) {
             plugin.sendPlayerMessage(player, pond.getEnterMessage());
-            
+
             if (titleEnabled) {
-                showEnterTitle(player, pond);
+                showTitle(player, pond, enterTitle, enterSubtitle);
             }
         }
     }
-    
+
     private void handlePlayerLeavePool(Player player, String pondId, PlayerData playerData, boolean sendMessage) {
         playerData.setCurrentPondId(null);
         playerData.setAfk(false);
-        
+
         plugin.getSecurityManager().onPlayerLeavePool(player, pondId);
+        plugin.getPondManager().removePlayerFromPool(pondId, player.getUniqueId());
         plugin.getUiManager().unregisterPlayerForUpdate(player);
         plugin.getDataManager().queuePlayerDataSave(playerData);
-        
+
         if (sendMessage) {
             Pond pond = plugin.getPondManager().getPond(pondId);
             if (pond != null) {
                 plugin.sendPlayerMessage(player, pond.getLeaveMessage());
-                
+
                 if (titleEnabled) {
-                    showLeaveTitle(player, pond);
+                    showTitle(player, pond, leaveTitle, leaveSubtitle);
                 }
             }
         }
     }
-    
+
     private void handlePlayerSwitchPool(Player player, Pond oldPond, Pond newPond, PlayerData playerData, boolean sendMessage) {
         playerData.setCurrentPondId(newPond.getId());
-        
+
         plugin.getSecurityManager().onPlayerSwitchPool(player, oldPond.getId(), newPond.getId());
+        plugin.getPondManager().removePlayerFromPool(oldPond.getId(), player.getUniqueId());
+        plugin.getPondManager().addPlayerToPool(newPond.getId(), player.getUniqueId());
         plugin.getDataManager().queuePlayerDataSave(playerData);
-        
+
         if (sendMessage) {
             plugin.sendPlayerMessage(player, oldPond.getLeaveMessage());
             plugin.sendPlayerMessage(player, newPond.getEnterMessage());
-            
+
             if (titleEnabled) {
-                showLeaveTitle(player, oldPond);
-                showEnterTitle(player, newPond);
+                showTitle(player, oldPond, leaveTitle, leaveSubtitle);
+                showTitle(player, newPond, enterTitle, enterSubtitle);
             }
         }
     }
-    
-    private void showEnterTitle(Player player, Pond pond) {
-        String title = ColorUtil.replacePlaceholders(enterTitle, "{pool_name}", pond.getName());
-        String subtitle = ColorUtil.replacePlaceholders(enterSubtitle, "{pool_name}", pond.getName());
-        
+
+    private void showTitle(Player player, Pond pond, String titleTemplate, String subtitleTemplate) {
+        String title = ColorUtil.replacePlaceholders(titleTemplate, "{pool_name}", pond.getName());
+        String subtitle = ColorUtil.replacePlaceholders(subtitleTemplate, "{pool_name}", pond.getName());
+
         Component titleComp = ColorUtil.parseToComponent(title);
         Component subtitleComp = ColorUtil.parseToComponent(subtitle);
-        
-        Title.Times times = Title.Times.times(titleFadeIn, titleStay, titleFadeOut);
-        player.showTitle(Title.title(titleComp, subtitleComp, times));
-    }
-    
-    private void showLeaveTitle(Player player, Pond pond) {
-        String title = ColorUtil.replacePlaceholders(leaveTitle, "{pool_name}", pond.getName());
-        String subtitle = ColorUtil.replacePlaceholders(leaveSubtitle, "{pool_name}", pond.getName());
-        
-        Component titleComp = ColorUtil.parseToComponent(title);
-        Component subtitleComp = ColorUtil.parseToComponent(subtitle);
-        
+
         Title.Times times = Title.Times.times(titleFadeIn, titleStay, titleFadeOut);
         player.showTitle(Title.title(titleComp, subtitleComp, times));
     }
