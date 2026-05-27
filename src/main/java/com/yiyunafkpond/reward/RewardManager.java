@@ -388,70 +388,46 @@ public class RewardManager {
 
     private long capReward(long amount, long todayTotal, long serverMax, long todayPool, long poolMax,
                            String serverLimitMsg, String poolLimitMsg, Player player) {
-        if (serverMax > 0) {
-            if (todayTotal >= serverMax) {
-                sendLimitMessage(player, serverLimitMsg);
-                return -1;
-            }
-            if (todayTotal + amount > serverMax) {
-                amount = serverMax - todayTotal;
-            }
+        if (serverMax > 0 && todayTotal >= serverMax) {
+            sendLimitMessage(player, serverLimitMsg);
+            return -1;
         }
-        if (poolMax > 0) {
-            if (todayPool >= poolMax) {
-                sendLimitMessage(player, poolLimitMsg);
-                return -1;
-            }
-            if (todayPool + amount > poolMax) {
-                amount = poolMax - todayPool;
-            }
+        if (poolMax > 0 && todayPool >= poolMax) {
+            sendLimitMessage(player, poolLimitMsg);
+            return -1;
         }
+        if (serverMax > 0 && todayTotal + amount > serverMax) amount = serverMax - todayTotal;
+        if (poolMax > 0 && todayPool + amount > poolMax) amount = poolMax - todayPool;
         return amount;
     }
 
     private double capRewardDouble(double amount, double todayTotal, double serverMax, double todayPool, double poolMax,
                                     String serverLimitMsg, String poolLimitMsg, Player player) {
-        if (serverMax > 0) {
-            if (todayTotal >= serverMax) {
-                sendLimitMessage(player, serverLimitMsg);
-                return -1;
-            }
-            if (todayTotal + amount > serverMax) {
-                amount = roundMoney(serverMax - todayTotal);
-            }
+        if (serverMax > 0 && todayTotal >= serverMax) {
+            sendLimitMessage(player, serverLimitMsg);
+            return -1;
         }
-        if (poolMax > 0) {
-            if (todayPool >= poolMax) {
-                sendLimitMessage(player, poolLimitMsg);
-                return -1;
-            }
-            if (todayPool + amount > poolMax) {
-                amount = roundMoney(poolMax - todayPool);
-            }
+        if (poolMax > 0 && todayPool >= poolMax) {
+            sendLimitMessage(player, poolLimitMsg);
+            return -1;
         }
+        if (serverMax > 0 && todayTotal + amount > serverMax) amount = roundMoney(serverMax - todayTotal);
+        if (poolMax > 0 && todayPool + amount > poolMax) amount = roundMoney(poolMax - todayPool);
         return roundMoney(amount);
     }
 
     private int capRewardInt(int amount, double todayTotal, double serverMax, double todayPool, double poolMax,
                               String serverLimitMsg, String poolLimitMsg, Player player) {
-        if (serverMax > 0) {
-            if (todayTotal >= serverMax) {
-                sendLimitMessage(player, serverLimitMsg);
-                return -1;
-            }
-            if (todayTotal + amount > serverMax) {
-                amount = (int) (serverMax - todayTotal);
-            }
+        if (serverMax > 0 && todayTotal >= serverMax) {
+            sendLimitMessage(player, serverLimitMsg);
+            return -1;
         }
-        if (poolMax > 0) {
-            if (todayPool >= poolMax) {
-                sendLimitMessage(player, poolLimitMsg);
-                return -1;
-            }
-            if (todayPool + amount > poolMax) {
-                amount = (int) (poolMax - todayPool);
-            }
+        if (poolMax > 0 && todayPool >= poolMax) {
+            sendLimitMessage(player, poolLimitMsg);
+            return -1;
         }
+        if (serverMax > 0 && todayTotal + amount > serverMax) amount = (int)(serverMax - todayTotal);
+        if (poolMax > 0 && todayPool + amount > poolMax) amount = (int)(poolMax - todayPool);
         return amount;
     }
 
