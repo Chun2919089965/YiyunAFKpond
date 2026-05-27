@@ -41,8 +41,6 @@ public class UIManager {
     private BossBar.Overlay bossBarOverlay;
     private long updateIntervalTicks;
 
-    private final Map<UUID, CachedMultiBarState> uiStateCache = new ConcurrentHashMap<>();
-
     public UIManager(YiyunAFKpond plugin) {
         this.plugin = plugin;
         loadConfig();
@@ -121,7 +119,6 @@ public class UIManager {
             }
         }
         playerBossBars.clear();
-        uiStateCache.clear();
         dirtyPlayers.clear();
 
         if (plugin.isDebugMode()) {
@@ -151,7 +148,6 @@ public class UIManager {
             } else {
                 playersNeedingUIUpdate.remove(playerId);
                 removeAllBossBars(playerId);
-                uiStateCache.remove(playerId);
             }
         }
     }
@@ -166,7 +162,6 @@ public class UIManager {
         playersNeedingUIUpdate.remove(player.getUniqueId());
         dirtyPlayers.remove(player.getUniqueId());
         removeAllBossBars(player.getUniqueId());
-        uiStateCache.remove(player.getUniqueId());
     }
 
     private void updatePlayerUI(Player player) {
@@ -185,11 +180,9 @@ public class UIManager {
                 }
             } else {
                 removeAllBossBars(playerId);
-                uiStateCache.remove(playerId);
             }
         } else {
             removeAllBossBars(playerId);
-            uiStateCache.remove(playerId);
         }
     }
 
@@ -245,8 +238,6 @@ public class UIManager {
         updateSingleBar(player, playerId, BarType.POINT,
                 pond.isPointEnabled(), pond.getPointMaxDaily(), pondTodayPoint,
                 pointBarTitle, pointBarColor, pond, playerData);
-
-        uiStateCache.put(playerId, new CachedMultiBarState(poolId, pondTodayExp, pondTodayMoney, pondTodayPoint));
     }
 
     private void updateSingleBar(Player player, UUID playerId, BarType barType,
@@ -363,7 +354,6 @@ public class UIManager {
 
     public void onPlayerQuit(Player player) {
         removeAllBossBars(player.getUniqueId());
-        uiStateCache.remove(player.getUniqueId());
         dirtyPlayers.remove(player.getUniqueId());
     }
 
@@ -379,7 +369,6 @@ public class UIManager {
             }
         }
         playerBossBars.clear();
-        uiStateCache.clear();
 
         if ((actionBarEnabled || bossBarEnabled) && (updateTask == null)) {
             start();
@@ -388,25 +377,4 @@ public class UIManager {
         }
     }
 
-    private static class CachedMultiBarState {
-        private final String poolId;
-        private final long todayExp;
-        private final double todayMoney;
-        private final int todayPoint;
-
-        CachedMultiBarState(String poolId, long todayExp, double todayMoney, int todayPoint) {
-            this.poolId = poolId;
-            this.todayExp = todayExp;
-            this.todayMoney = todayMoney;
-            this.todayPoint = todayPoint;
-        }
-
-        boolean isDirty(String currentPoolId, long currentExp, double currentMoney, int currentPoint) {
-            if (!Objects.equals(poolId, currentPoolId)) return true;
-            if (todayExp != currentExp) return true;
-            if (Math.abs(todayMoney - currentMoney) > 0.001) return true;
-            if (todayPoint != currentPoint) return true;
-            return false;
-        }
-    }
 }
