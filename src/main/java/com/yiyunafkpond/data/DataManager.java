@@ -205,8 +205,11 @@ public class DataManager {
                 if (!connection.isClosed() && connection.isValid(5)) {
                     return connection;
                 }
-            } catch (SQLException ignored) {
+            } catch (SQLException e) {
+                logger.warning("数据库连接验证失败，将重新连接: " + e.getMessage());
             }
+            try { connection.close(); } catch (SQLException ignored) {}
+            connection = null;
         }
         reconnect();
         if (connection != null) {
@@ -774,17 +777,20 @@ public class DataManager {
         FoliaSchedulerAdapter adapter = plugin.getSchedulerManager().getAdapter();
         batchSaveTask = adapter.runAsyncRepeating(() -> {
             if (pendingSaveQueue.isEmpty()) return;
-            
-            Map<UUID, PlayerData> toSave = new HashMap<>(pendingSaveQueue);
-            pendingSaveQueue.clear();
-            
+
+            List<PlayerData> toSave = new ArrayList<>();
+            for (Iterator<Map.Entry<UUID, PlayerData>> it = pendingSaveQueue.entrySet().iterator(); it.hasNext();) {
+                toSave.add(it.next().getValue());
+                it.remove();
+            }
+
             if (storageType.equals("mysql") || storageType.equals("sqlite")) {
                 Connection conn = null;
                 boolean isPooled = dataSource != null;
                 try {
                     conn = getConnection();
                     int savedCount = 0;
-                    for (PlayerData pd : toSave.values()) {
+                    for (PlayerData pd : toSave) {
                         try {
                             savePlayerBase(conn, pd);
                             savePlayerDaily(conn, pd);
@@ -806,7 +812,7 @@ public class DataManager {
                 }
             } else {
                 int savedCount = 0;
-                for (PlayerData pd : toSave.values()) {
+                for (PlayerData pd : toSave) {
                     try {
                         savePlayerDataToYAML(pd);
                         savedCount++;
