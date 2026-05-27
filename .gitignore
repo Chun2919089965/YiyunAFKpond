@@ -33,8 +33,5 @@ desktop.ini
 # Maven
 *.log
 
-# Dependencies source
-FoliaLib-main/
-
 # Runtime
 logs/
