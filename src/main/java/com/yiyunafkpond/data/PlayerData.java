@@ -88,7 +88,7 @@ public class PlayerData {
     }
     public synchronized void clearPondAfkTimes() { this.pondAfkTimes.clear(); this.pondTodayAfkTime.clear(); }
 
-    public long getDailyAfkTimeByPool(String pondId) { return pondTodayAfkTime.getOrDefault(pondId, 0L); }
+    public synchronized long getDailyAfkTimeByPool(String pondId) { return pondTodayAfkTime.getOrDefault(pondId, 0L); }
     public Map<String, Long> getPoolTodayAfkTime() { return Map.copyOf(pondTodayAfkTime); }
     public synchronized void setPoolTodayAfkTime(String pondId, long time) { this.pondTodayAfkTime.put(pondId, time); }
     public synchronized void removePoolTodayAfkTime(String pondId) { this.pondTodayAfkTime.remove(pondId); }
@@ -127,9 +127,9 @@ public class PlayerData {
         this.pondTodayPoint.merge(pondId, point, Integer::sum);
     }
 
-    public long getDailyExpByPool(String pondId) { return pondTodayExp.getOrDefault(pondId, 0L); }
-    public double getDailyMoneyByPool(String pondId) { return pondTodayMoney.getOrDefault(pondId, 0.0); }
-    public int getDailyPointByPool(String pondId) { return pondTodayPoint.getOrDefault(pondId, 0); }
+    public synchronized long getDailyExpByPool(String pondId) { return pondTodayExp.getOrDefault(pondId, 0L); }
+    public synchronized double getDailyMoneyByPool(String pondId) { return pondTodayMoney.getOrDefault(pondId, 0.0); }
+    public synchronized int getDailyPointByPool(String pondId) { return pondTodayPoint.getOrDefault(pondId, 0); }
     public Map<String, Long> getPoolTodayExp() { return Map.copyOf(pondTodayExp); }
     public Map<String, Double> getPoolTodayMoney() { return Map.copyOf(pondTodayMoney); }
     public Map<String, Integer> getPoolTodayPoint() { return Map.copyOf(pondTodayPoint); }
