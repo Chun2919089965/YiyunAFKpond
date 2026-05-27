@@ -80,6 +80,11 @@ public class YiyunAFKpond extends JavaPlugin {
 
         hookManager = new HookManager(this);
 
+        selectionManager = new SelectionManager(this);
+        securityManager = new SecurityManager(this);
+        uiManager = new UIManager(this);
+        languageManager = new LanguageManager(this);
+
         FoliaSchedulerAdapter adapter = schedulerManager.getAdapter();
 
         adapter.runSyncLater(this::initCoreModules, 5L);
@@ -99,12 +104,8 @@ public class YiyunAFKpond extends JavaPlugin {
     }
 
     private void initCoreModules() {
-        selectionManager = new SelectionManager(this);
-        securityManager = new SecurityManager(this);
-        uiManager = new UIManager(this);
         rewardManager = new RewardManager(this);
         auditLogger = new AuditLogger(this);
-        languageManager = new LanguageManager(this);
 
         commandManager = new CommandManager(this);
 
@@ -255,6 +256,7 @@ public class YiyunAFKpond extends JavaPlugin {
             playerData.setCurrentPondId(pond.getId());
             playerData.setAfk(true);
             securityManager.onPlayerEnterPool(player, pond.getId());
+            pondManager.addPlayerToPool(pond.getId(), player.getUniqueId());
             uiManager.registerPlayerForUpdate(player);
             dataManager.queuePlayerDataSave(playerData);
 
