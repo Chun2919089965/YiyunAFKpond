@@ -18,14 +18,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 
 
 public class PondManager {
     private final YiyunAFKpond plugin;
-    private final Map<String, Pond> ponds; // 按ID存储池
-    private final Map<String, List<Pond>> pondsByWorld; // 按世界名称存储池，提高查询性能
+    private final Map<String, Pond> ponds;
+    private final Map<String, List<Pond>> pondsByWorld;
+    private final Map<String, Set<UUID>> playersByPool = new ConcurrentHashMap<>();
     private final File pondsFile;
     private FileConfiguration pondsConfig;
     
@@ -45,7 +48,7 @@ public class PondManager {
                     pondsFile.createNewFile();
                 }
             } catch (IOException e) {
-                plugin.getLogger().severe(String.format("无法创建 ponds.yml 文件: %s", e.getMessage()));
+                plugin.getLogger().log(java.util.logging.Level.SEVERE, "无法创建 ponds.yml 文件", e);
             }
         }
         
@@ -56,6 +59,7 @@ public class PondManager {
     public void loadPonds() {
         ponds.clear();
         pondsByWorld.clear();
+        playersByPool.clear();
         
         // 重新加载配置文件
         this.pondsConfig = YamlConfiguration.loadConfiguration(pondsFile);
@@ -209,7 +213,7 @@ public class PondManager {
             
             return pond;
         } catch (Exception e) {
-            plugin.getLogger().severe(String.format("无法加载池 %s: %s", pondId, e.getMessage()));
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "无法加载池 " + pondId, e);
             return null;
         }
     }
@@ -257,11 +261,9 @@ public class PondManager {
                 plugin.getLogger().info(String.format("已保存 %d 个挂机池!", ponds.size()));
             }
         } catch (IOException e) {
-            plugin.getLogger().severe(String.format("无法保存 ponds.yml 文件: %s", e.getMessage()));
-            // 保存失败时，保持原有的配置不变
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "无法保存 ponds.yml 文件", e);
         } catch (Exception e) {
-            plugin.getLogger().severe(String.format("保存挂机池时发生异常: %s", e.getMessage()));
-            // 捕获所有异常，避免保存过程中出现问题导致配置丢失
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "保存挂机池时发生异常", e);
         }
     }
     
@@ -481,16 +483,40 @@ public class PondManager {
     
     // 获取在指定池中的玩家列表
     public List<Player> getPlayersInPond(Pond pond) {
+        Set<UUID> uuids = playersByPool.get(pond.getId());
+        if (uuids == null || uuids.isEmpty()) return Collections.emptyList();
+
         List<Player> players = new ArrayList<>();
-        
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            PlayerData playerData = plugin.getDataManager().getPlayerData(player.getUniqueId());
-            
-            if (playerData != null && playerData.isAfk() && playerData.getCurrentPondId() != null && playerData.getCurrentPondId().equals(pond.getId())) {
+        for (UUID uuid : uuids) {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null && player.isOnline()) {
                 players.add(player);
             }
         }
-        
         return players;
+    }
+
+    public void addPlayerToPool(String pondId, UUID playerUuid) {
+        playersByPool.computeIfAbsent(pondId, k -> ConcurrentHashMap.newKeySet()).add(playerUuid);
+    }
+
+    public void removePlayerFromPool(String pondId, UUID playerUuid) {
+        Set<UUID> uuids = playersByPool.get(pondId);
+        if (uuids != null) {
+            uuids.remove(playerUuid);
+        }
+    }
+
+    public void removePlayerFromAllPools(UUID playerUuid) {
+        for (Set<UUID> uuids : playersByPool.values()) {
+            uuids.remove(playerUuid);
+        }
+    }
+
+    public int getPlayerCountInPond(String pondId) {
+        Set<UUID> uuids = playersByPool.get(pondId);
+        if (uuids == null) return 0;
+        uuids.removeIf(uuid -> plugin.getServer().getPlayer(uuid) == null);
+        return uuids.size();
     }
 }
