@@ -65,13 +65,14 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
                         } else if (args.length == 3) {
                             // 补全属性名
                             List<String> properties = List.of(
-                                "expdistributionmode", "expinterval", 
+                                "expdistributionmode", "expenabled", "expinterval",
                                 "exprewardmode", "exprandommin", "exprandommax", "expfixedamount", "expmaxdaily", "expapplymending",
                                 "xprate",
-                                "moneyrewardmode", "moneyrandommin", "moneyrandommax", "moneyfixedamount",
+                                "moneyenabled", "moneyrewardmode", "moneyrandommin", "moneyrandommax", "moneyfixedamount",
                                 "moneyinterval", "moneymaxdaily", "moneyrate",
-                                "pointrewardmode", "pointrandommin", "pointrandommax", "pointfixedamount",
+                                "pointenabled", "pointrewardmode", "pointrandommin", "pointrandommax", "pointfixedamount",
                                 "pointinterval", "pointmaxdaily", "pointrate",
+                                "commandinterval",
                                 "requiredpermission", "enabled",
                                 "entermessage", "leavemessage",
                                 "exprewardmessage", "moneyrewardmessage", "pointrewardmessage",
@@ -91,7 +92,8 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
                                 completions.addAll(List.of("random", "fixed"));
                             } else if (property.equals("requiredpermission")) {
                                 completions.add("null");
-                            } else if (property.equals("enabled") || property.equals("expapplymending")) {
+                            } else if (property.equals("enabled") || property.equals("expapplymending")
+                                    || property.equals("expenabled") || property.equals("moneyenabled") || property.equals("pointenabled")) {
                                 completions.addAll(List.of("true", "false"));
                             }
                         }

@@ -722,10 +722,13 @@ public class DataManager {
         return pd;
     }
     
+    /**
+     * 获取已加载的玩家数据（仅查找，不触发每日重置）。
+     * 高频调用方法（每秒 AFK 计时任务），不做日期检查——重置由 SchedulerManager 定时任务统一处理。
+     */
     public PlayerData getPlayerDataIfLoaded(UUID uuid) {
         PlayerData pd = playerDataMap.get(uuid);
         if (pd != null) {
-            pd.checkAndResetDailyData();
             updatePlayerActivity(uuid);
         }
         return pd;

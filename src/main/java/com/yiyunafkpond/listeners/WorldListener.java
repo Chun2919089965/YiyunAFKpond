@@ -1,31 +1,44 @@
 package com.yiyunafkpond.listeners;
 
 import com.yiyunafkpond.YiyunAFKpond;
+import com.yiyunafkpond.pond.Pond;
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 
 public class WorldListener implements Listener {
     private final YiyunAFKpond plugin;
-    
+
     public WorldListener(YiyunAFKpond plugin) {
         this.plugin = plugin;
     }
-    
+
     /**
-     * 世界加载时的处理
-     * @param event 事件对象
+     * 世界加载时的处理。
+     * 只更新新加载世界中的池的 World 引用，不清空现有池追踪数据，
+     * 避免玩家状态与池追踪脱钩导致的奖励泄漏。
      */
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
-        // 只有当挂机池已经加载过（即pondsLoaded标志为true），才重新加载挂机池
-        // 这样可以避免在插件启动阶段就进行世界检查
+        World world = event.getWorld();
+        String worldName = world.getName();
+
         if (plugin.isPondsLoaded()) {
-            // 重新加载挂机池，确保新加载的世界中的挂机池能被正确处理
-            plugin.getPondManager().loadPonds();
+            int updated = 0;
+            for (Pond pond : plugin.getPondManager().getAllPonds()) {
+                if (worldName.equals(pond.getWorldName()) && pond.getWorld() == null) {
+                    pond.updateWorld(world);
+                    updated++;
+                }
+            }
+            if (updated > 0) {
+                plugin.getLogger().info("世界 " + worldName + " 已加载，更新了 " + updated + " 个挂机池的 World 引用");
+                // 重新扫描该世界中可能已在池内的玩家
+                plugin.rescanPlayersInPonds();
+            }
         } else {
-            // 挂机池尚未加载，不进行处理
-            plugin.getLogger().info("世界 " + event.getWorld().getName() + " 已加载");
+            plugin.getLogger().info("世界 " + worldName + " 已加载");
         }
     }
 }

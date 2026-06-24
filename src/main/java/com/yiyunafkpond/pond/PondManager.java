@@ -60,13 +60,13 @@ public class PondManager {
         ponds.clear();
         pondsByWorld.clear();
         playersByPool.clear();
-        
+
         // 重新加载配置文件
         this.pondsConfig = YamlConfiguration.loadConfiguration(pondsFile);
-        
+
         if (pondsConfig.contains("ponds")) {
             ConfigurationSection pondsSection = pondsConfig.getConfigurationSection("ponds");
-            
+
             for (String pondId : pondsSection.getKeys(false)) {
                 ConfigurationSection pondSection = pondsSection.getConfigurationSection(pondId);
                 Pond pond = loadPondFromConfig(pondId, pondSection);
@@ -76,8 +76,38 @@ public class PondManager {
                 }
             }
         }
-        
+
         plugin.getLogger().info(String.format("已加载 %d 个挂机池!", ponds.size()));
+
+        // 检测重叠的池并警告
+        checkPondOverlaps();
+    }
+
+    /** 检测同一世界内的池是否有区域重叠，输出警告 */
+    private void checkPondOverlaps() {
+        for (Map.Entry<String, List<Pond>> entry : pondsByWorld.entrySet()) {
+            List<Pond> worldPonds = entry.getValue();
+            if (worldPonds.size() <= 1) continue;
+
+            for (int i = 0; i < worldPonds.size(); i++) {
+                Pond a = worldPonds.get(i);
+                for (int j = i + 1; j < worldPonds.size(); j++) {
+                    Pond b = worldPonds.get(j);
+                    if (pondsOverlap(a, b)) {
+                        plugin.getLogger().warning(String.format(
+                            "挂机池 '%s'(%s) 与 '%s'(%s) 在世界 '%s' 中区域重叠！玩家将匹配到先遍历到的池，请调整坐标。",
+                            a.getName(), a.getId(), b.getName(), b.getId(), entry.getKey()));
+                    }
+                }
+            }
+        }
+    }
+
+    /** 检查两个池的立方体区域是否有交集 */
+    private static boolean pondsOverlap(Pond a, Pond b) {
+        return a.getMinX() <= b.getMaxX() && a.getMaxX() >= b.getMinX()
+            && a.getMinY() <= b.getMaxY() && a.getMaxY() >= b.getMinY()
+            && a.getMinZ() <= b.getMaxZ() && a.getMaxZ() >= b.getMinZ();
     }
     
     // 将池添加到按世界分组的map中

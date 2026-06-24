@@ -179,18 +179,34 @@ public class RewardManager {
         }, Constants.TICKS_PER_SECOND, Constants.TICKS_PER_SECOND);
     }
 
-    private void startExpTask(Pond pond) {
-        if (!pond.isExpEnabled()) return;
+    // ==================== 统一奖励任务模板 ====================
+
+    /**
+     * 每玩家奖励处理回调。
+     * @return true 表示实际发放了奖励（触发保存和 UI 刷新）
+     */
+    @FunctionalInterface
+    private interface RewardProcessor {
+        boolean process(Player player, PlayerData data, Pond pond);
+    }
+
+    /**
+     * 统一的奖励任务启动模板，消除 exp/money/point 三类任务间的重复代码。
+     */
+    private void startTypedRewardTask(Pond pond, boolean enabled, long intervalTicks,
+                                       Map<String, WrappedTask> taskMap,
+                                       Map<String, Long> nextEpochMap,
+                                       RewardProcessor processor) {
+        if (!enabled) return;
 
         String poolId = pond.getId();
-        long intervalTicks = getExpIntervalTicks(pond);
         if (intervalTicks <= 0) {
-            plugin.getLogger().warning("经验奖励间隔 <= 0，跳过 - 池ID: " + poolId);
+            plugin.getLogger().warning("奖励间隔 <= 0，跳过 - 池ID: " + poolId);
             return;
         }
 
         long intervalSec = intervalTicks / Constants.TICKS_PER_SECOND;
-        expNextEpochSec.put(poolId, epochSec() + intervalSec);
+        nextEpochMap.put(poolId, epochSec() + intervalSec);
 
         FoliaSchedulerAdapter adapter = plugin.getSchedulerManager().getAdapter();
         WrappedTask task = adapter.runSyncRepeating(() -> {
@@ -200,149 +216,100 @@ public class RewardManager {
             for (Player player : players) {
                 if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
 
-                long expAmount = calculateExperienceAmount(pond);
-                expAmount = (long) (expAmount * pond.getXpRate());
-                if (expAmount <= 0) continue;
-
                 PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
                 if (playerData == null) continue;
                 playerData.checkAndResetDailyData();
 
-                long serverMax = plugin.getConfig().getLong("server-limits.total-exp-daily", 0);
-                long poolMax = pond.getExpMaxDaily();
-                long todayPool = playerData.getDailyExpByPool(poolId);
-                long todayTotal = playerData.getTodayExp();
-
-                long capped = capReward(expAmount, todayTotal, serverMax, todayPool, poolMax,
-                        plugin.getLanguageManager().getMessage("player.total-exp-limit"),
-                        pond.getExpLimitMessage(), player);
-                if (capped <= 0) continue;
-                expAmount = capped;
-
-                player.giveExp((int) Math.min(expAmount, Integer.MAX_VALUE), pond.isExpApplyMending());
-
-                plugin.sendPlayerMessage(player, pond.getExpRewardMessage().replace("{xp_amount}", String.valueOf(expAmount)));
-                playerData.addXpGained(expAmount);
-                playerData.addTodayExp(poolId, expAmount);
-                playerData.setLastRewardTime(System.currentTimeMillis());
-                plugin.getDataManager().queuePlayerDataSave(playerData);
-                plugin.getUiManager().markDirty(player);
+                if (processor.process(player, playerData, pond)) {
+                    playerData.setLastRewardTime(System.currentTimeMillis());
+                    plugin.getDataManager().queuePlayerDataSave(playerData);
+                    plugin.getUiManager().markDirty(player);
+                }
             }
 
-            expNextEpochSec.put(poolId, epochSec() + intervalSec);
+            nextEpochMap.put(poolId, epochSec() + intervalSec);
         }, 1L, intervalTicks);
 
-        expTasks.put(poolId, task);
+        taskMap.put(poolId, task);
+    }
+
+    // ==================== 各类型奖励任务（仅保留类型特有逻辑） ====================
+
+    private void startExpTask(Pond pond) {
+        startTypedRewardTask(pond, pond.isExpEnabled(), getExpIntervalTicks(pond),
+                expTasks, expNextEpochSec, (player, data, p) -> {
+            long amount = calculateExperienceAmount(p);
+            amount = (long) (amount * p.getXpRate());
+            if (amount <= 0) return false;
+
+            String poolId = p.getId();
+            long serverMax = plugin.getConfig().getLong("server-limits.total-exp-daily", 0);
+            long poolMax = p.getExpMaxDaily();
+            long capped = capReward(amount, data.getTodayExp(), serverMax,
+                    data.getDailyExpByPool(poolId), poolMax,
+                    plugin.getLanguageManager().getMessage("player.total-exp-limit"),
+                    p.getExpLimitMessage(), player);
+            if (capped <= 0) return false;
+
+            player.giveExp((int) Math.min(capped, Integer.MAX_VALUE), p.isExpApplyMending());
+            plugin.sendPlayerMessage(player, p.getExpRewardMessage()
+                    .replace("{xp_amount}", String.valueOf(capped)));
+            data.addXpGained(capped);
+            data.addTodayExp(poolId, capped);
+            return true;
+        });
     }
 
     private void startMoneyTask(Pond pond) {
-        if (!pond.isMoneyEnabled()) return;
+        startTypedRewardTask(pond, pond.isMoneyEnabled(),
+                pond.getMoneyInterval() * Constants.TICKS_PER_SECOND,
+                moneyTasks, moneyNextEpochSec, (player, data, p) -> {
+            double amount = calculateMoneyAmount(p);
+            if (amount < Constants.MIN_REWARD_AMOUNT) return false;
 
-        String poolId = pond.getId();
-        long intervalSec = pond.getMoneyInterval();
-        if (intervalSec <= 0) {
-            plugin.getLogger().warning("金币奖励间隔 <= 0，跳过 - 池ID: " + poolId);
-            return;
-        }
+            String poolId = p.getId();
+            double serverMax = plugin.getConfig().getDouble("server-limits.total-money-daily", 0.0);
+            double poolMax = p.getMoneyMaxDaily();
+            double capped = capRewardDouble(amount, data.getTodayMoney(), serverMax,
+                    data.getDailyMoneyByPool(poolId), poolMax,
+                    plugin.getLanguageManager().getMessage("player.total-money-limit"),
+                    p.getMoneyLimitMessage(), player);
+            if (capped < Constants.MIN_REWARD_AMOUNT) return false;
 
-        long intervalTicks = intervalSec * Constants.TICKS_PER_SECOND;
-        moneyNextEpochSec.put(poolId, epochSec() + intervalSec);
+            if (!plugin.getHookManager().depositMoney(player, capped)) return false;
 
-        FoliaSchedulerAdapter adapter = plugin.getSchedulerManager().getAdapter();
-        WrappedTask task = adapter.runSyncRepeating(() -> {
-            List<Player> players = getPlayersInPond(pond);
-            if (players.isEmpty()) return;
-
-            for (Player player : players) {
-                if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
-
-                PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
-                if (playerData == null) continue;
-                playerData.checkAndResetDailyData();
-
-                double moneyAmount = calculateMoneyAmount(pond);
-                if (moneyAmount < Constants.MIN_REWARD_AMOUNT) continue;
-
-                double serverMax = plugin.getConfig().getDouble("server-limits.total-money-daily", 0.0);
-                double poolMax = pond.getMoneyMaxDaily();
-                double todayPool = playerData.getDailyMoneyByPool(poolId);
-                double todayTotal = playerData.getTodayMoney();
-
-                double capped = capRewardDouble(moneyAmount, todayTotal, serverMax, todayPool, poolMax,
-                        plugin.getLanguageManager().getMessage("player.total-money-limit"),
-                        pond.getMoneyLimitMessage(), player);
-                if (capped < Constants.MIN_REWARD_AMOUNT) continue;
-                moneyAmount = capped;
-
-                if (plugin.getHookManager().depositMoney(player, moneyAmount)) {
-                    plugin.sendPlayerMessage(player, pond.getMoneyRewardMessage().replace("{money_amount}", String.format("%.2f", moneyAmount)));
-                    playerData.addMoneyGained(moneyAmount);
-                    playerData.addTodayMoney(poolId, moneyAmount);
-                    playerData.setLastRewardTime(System.currentTimeMillis());
-                    plugin.getDataManager().queuePlayerDataSave(playerData);
-                    plugin.getUiManager().markDirty(player);
-                }
-            }
-
-            moneyNextEpochSec.put(poolId, epochSec() + intervalSec);
-        }, 1L, intervalTicks);
-
-        moneyTasks.put(poolId, task);
+            plugin.sendPlayerMessage(player, p.getMoneyRewardMessage()
+                    .replace("{money_amount}", String.format("%.2f", capped)));
+            data.addMoneyGained(capped);
+            data.addTodayMoney(poolId, capped);
+            return true;
+        });
     }
 
     private void startPointTask(Pond pond) {
-        if (!pond.isPointEnabled()) return;
+        startTypedRewardTask(pond, pond.isPointEnabled(),
+                pond.getPointInterval() * Constants.TICKS_PER_SECOND,
+                pointTasks, pointNextEpochSec, (player, data, p) -> {
+            int amount = calculatePointAmount(p);
+            if (amount < 1) return false;
 
-        String poolId = pond.getId();
-        long intervalSec = pond.getPointInterval();
-        if (intervalSec <= 0) {
-            plugin.getLogger().warning("点券奖励间隔 <= 0，跳过 - 池ID: " + poolId);
-            return;
-        }
+            String poolId = p.getId();
+            double serverMax = plugin.getConfig().getDouble("server-limits.total-point-daily", 0.0);
+            double poolMax = p.getPointMaxDaily();
+            int capped = capRewardInt(amount, data.getTodayPoint(), serverMax,
+                    data.getDailyPointByPool(poolId), poolMax,
+                    plugin.getLanguageManager().getMessage("player.total-point-limit"),
+                    p.getPointLimitMessage(), player);
+            if (capped < 1) return false;
 
-        long intervalTicks = intervalSec * Constants.TICKS_PER_SECOND;
-        pointNextEpochSec.put(poolId, epochSec() + intervalSec);
+            if (!plugin.getHookManager().depositPoint(player, capped)) return false;
 
-        FoliaSchedulerAdapter adapter = plugin.getSchedulerManager().getAdapter();
-        WrappedTask task = adapter.runSyncRepeating(() -> {
-            List<Player> players = getPlayersInPond(pond);
-            if (players.isEmpty()) return;
-
-            for (Player player : players) {
-                if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
-
-                PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
-                if (playerData == null) continue;
-                playerData.checkAndResetDailyData();
-
-                int pointAmount = calculatePointAmount(pond);
-                if (pointAmount < 1) continue;
-
-                double serverMax = plugin.getConfig().getDouble("server-limits.total-point-daily", 0.0);
-                double poolMax = pond.getPointMaxDaily();
-                double todayPool = playerData.getDailyPointByPool(poolId);
-                double todayTotal = playerData.getTodayPoint();
-
-                int capped = capRewardInt(pointAmount, todayTotal, serverMax, todayPool, poolMax,
-                        plugin.getLanguageManager().getMessage("player.total-point-limit"),
-                        pond.getPointLimitMessage(), player);
-                if (capped < 1) continue;
-                pointAmount = capped;
-
-                if (plugin.getHookManager().depositPoint(player, pointAmount)) {
-                    plugin.sendPlayerMessage(player, pond.getPointRewardMessage().replace("{point_amount}", String.valueOf(pointAmount)));
-                    playerData.addPointGained(pointAmount);
-                    playerData.addTodayPoint(poolId, pointAmount);
-                    playerData.setLastRewardTime(System.currentTimeMillis());
-                    plugin.getDataManager().queuePlayerDataSave(playerData);
-                    plugin.getUiManager().markDirty(player);
-                }
-            }
-
-            pointNextEpochSec.put(poolId, epochSec() + intervalSec);
-        }, 1L, intervalTicks);
-
-        pointTasks.put(poolId, task);
+            plugin.sendPlayerMessage(player, p.getPointRewardMessage()
+                    .replace("{point_amount}", String.valueOf(capped)));
+            data.addPointGained(capped);
+            data.addTodayPoint(poolId, capped);
+            return true;
+        });
     }
 
     private void startCommandTask(Pond pond) {
@@ -371,9 +338,11 @@ public class RewardManager {
                     try {
                         processed = processCommandVariables(cmd, player, pond);
                         SimpleCommandMap commandMap = (SimpleCommandMap) plugin.getServer().getCommandMap();
-                        commandMap.dispatch(plugin.getServer().getConsoleSender(), processed.startsWith("/") ? processed.substring(1) : processed);
+                        commandMap.dispatch(plugin.getServer().getConsoleSender(),
+                                processed.startsWith("/") ? processed.substring(1) : processed);
                     } catch (Exception e) {
-                        plugin.getLogger().warning("执行命令失败: " + (processed != null ? processed : cmd) + ", 错误: " + e.getMessage());
+                        plugin.getLogger().warning("执行命令失败: "
+                                + (processed != null ? processed : cmd) + ", 错误: " + e.getMessage());
                     }
                 }
             }
@@ -455,7 +424,14 @@ public class RewardManager {
         return pond.getExpInterval() * Constants.TICKS_PER_SECOND;
     }
 
+    /**
+     * 检查玩家是否有资格获得奖励。
+     * 同时验证：
+     * 1. 玩家是否真实位于挂机池区域内（防止传送后状态未清理的奖励泄漏）
+     * 2. 玩家是否拥有进入该池的权限
+     */
     private boolean isEligibleForReward(Player player, Pond pond) {
+        if (!pond.isInPond(player.getLocation())) return false;
         String requiredPermission = pond.getRequiredPermission();
         return requiredPermission == null || player.hasPermission(requiredPermission);
     }
@@ -524,25 +500,6 @@ public class RewardManager {
             type.giveReward(player, amount, pond);
         } else {
             plugin.getLogger().warning("尝试发放未知奖励类型: " + rewardType);
-        }
-    }
-
-    public void givePondRewards(Player player, Pond pond) {
-        if (!pond.isEnabled() || !isEligibleForReward(player, pond)) return;
-
-        if (pond.isExpEnabled() && plugin.getConfig().getBoolean("rewards.types.xp", true)) {
-            long expAmount = (long) (calculateExperienceAmount(pond) * pond.getXpRate());
-            if (expAmount > 0) giveReward(player, "xp", expAmount, pond);
-        }
-
-        if (pond.isMoneyEnabled() && plugin.getConfig().getBoolean("rewards.types.money", true)) {
-            double moneyAmount = calculateMoneyAmount(pond);
-            if (moneyAmount > 0) giveReward(player, "money", moneyAmount, pond);
-        }
-
-        if (pond.isPointEnabled() && plugin.getConfig().getBoolean("rewards.types.point", true)) {
-            int pointAmount = calculatePointAmount(pond);
-            if (pointAmount > 0) giveReward(player, "point", pointAmount, pond);
         }
     }
 

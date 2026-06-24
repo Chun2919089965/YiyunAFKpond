@@ -104,14 +104,19 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         Location from = event.getFrom();
         Location to = event.getTo();
-        
+
         plugin.getSecurityManager().handlePlayerTeleport(event);
-        
+
         if (event.isCancelled()) return;
-        
+
         if (!hasBlockPositionChanged(from, to)) return;
-        
+
         handlePoolTransition(player, from, to, null);
+
+        // 传送后异步验证：防御状态不同步导致的奖励泄漏
+        // 在传送完成（2 tick后）再次校验玩家是否真的在其声称的挂机池中
+        plugin.getSchedulerManager().getAdapter().runSyncLater(
+            () -> verifyPlayerPondState(player), 2L);
     }
     
     @EventHandler
@@ -129,14 +134,47 @@ public class PlayerListener implements Listener {
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         Location respawnLocation = event.getRespawnLocation();
-        
+
         Pond pond = plugin.getPondManager().getPondByLocation(respawnLocation);
         if (pond != null) {
             if (!plugin.getSecurityManager().canPlayerEnterPool(player, pond)) return;
             if (!plugin.getSecurityManager().canPlayerEnterPoolByIp(player, pond)) return;
-            
+
             PlayerData playerData = plugin.getDataManager().getOrCreatePlayerData(player);
             handlePlayerEnterPool(player, pond, playerData, true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
+        if (playerData == null || !playerData.isAfk()) return;
+
+        String pondId = playerData.getCurrentPondId();
+        if (pondId == null) return;
+
+        Pond pond = plugin.getPondManager().getPond(pondId);
+        if (pond != null && pond.getWorld() != null
+                && pond.getWorld().getName().equals(event.getFrom().getName())) {
+            // 玩家离开了其挂机池所在的世界，强制清理挂机状态
+            handlePlayerLeavePool(player, pondId, playerData, false);
+            plugin.debug(player.getName(), "因切换世界自动退出挂机池: " + pond.getName());
+        }
+    }
+
+    // 传送后验证玩家是否真的在其声称的挂机池中（防御性自愈）
+    private void verifyPlayerPondState(Player player) {
+        PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
+        if (playerData == null || !playerData.isAfk()) return;
+
+        String pondId = playerData.getCurrentPondId();
+        if (pondId == null) return;
+
+        Pond pond = plugin.getPondManager().getPond(pondId);
+        if (pond == null || !pond.isEnabled() || !pond.isInPond(player.getLocation())) {
+            handlePlayerLeavePool(player, pondId, playerData, false);
+            plugin.debug(player.getName(), "传送后验证失败，自动清理过期挂机状态: pondId=" + pondId);
         }
     }
     

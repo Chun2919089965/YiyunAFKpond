@@ -11,15 +11,18 @@ public class SetCommand implements SubCommand {
 
     private static final String HELP_HEADER = "&#87CEEB可用属性:";
     private static final List<String> HELP_LINES = List.of(
-            "&#ADD8E6  经验: expInterval, expRewardMode, expRandomMin, expRandomMax, expFixedAmount, expMaxDaily, expApplyMending, xpRate",
-            "&#ADD8E6  金币: moneyRewardMode, moneyRandomMin, moneyRandomMax, moneyFixedAmount, moneyInterval, moneyMaxDaily, moneyRate",
-            "&#ADD8E6  点券: pointRewardMode, pointRandomMin, pointRandomMax, pointFixedAmount, pointInterval, pointMaxDaily, pointRate",
+            "&#ADD8E6  经验: expEnabled, expDistributionMode, expInterval, expRewardMode, expRandomMin, expRandomMax, expFixedAmount, expMaxDaily, expApplyMending, xpRate",
+            "&#ADD8E6  金币: moneyEnabled, moneyRewardMode, moneyRandomMin, moneyRandomMax, moneyFixedAmount, moneyInterval, moneyMaxDaily, moneyRate",
+            "&#ADD8E6  点券: pointEnabled, pointRewardMode, pointRandomMin, pointRandomMax, pointFixedAmount, pointInterval, pointMaxDaily, pointRate",
+            "&#ADD8E6  命令: commands, commandInterval",
             "&#ADD8E6  其他: requiredPermission, enabled, enterMessage, leaveMessage",
             "&#ADD8E6  消息: expRewardMessage, moneyRewardMessage, pointRewardMessage, expLimitMessage, moneyLimitMessage, pointLimitMessage"
     );
 
     private static final Set<String> RESTART_PROPERTIES = Set.of(
-            "expinterval", "moneyinterval", "pointinterval", "enabled",
+            "expenabled", "moneyenabled", "pointenabled",
+            "expdistributionmode", "expinterval", "moneyinterval", "pointinterval", "commandinterval",
+            "enabled",
             "moneyrandommin", "moneyrandommax", "moneyfixedamount", "moneyrewardmode",
             "pointrandommin", "pointrandommax", "pointfixedamount", "pointrewardmode",
             "exprandommin", "exprandommax", "expfixedamount", "exprewardmode"
@@ -40,6 +43,7 @@ public class SetCommand implements SubCommand {
         Map<String, PropertySetter> map = new LinkedHashMap<>();
 
         map.put("expdistributionmode", (pond, v) -> setStringVal(pond::getExpDistributionMode, pond::setExpDistributionMode, v));
+        map.put("expenabled", (pond, v) -> setBoolVal(pond::isExpEnabled, pond::setExpEnabled, v));
         map.put("expinterval", (pond, v) -> setLongVal(pond::getExpInterval, pond::setExpInterval, v, 1, "时间间隔必须大于0秒！"));
         map.put("exprewardmode", (pond, v) -> setRewardModeVal(pond::getExpRewardMode, pond::setExpRewardMode, v, "经验"));
         map.put("exprandommin", (pond, v) -> setLongVal(pond::getExpRandomMin, pond::setExpRandomMin, v, 0, "经验随机最小值不能为负数！"));
@@ -49,6 +53,7 @@ public class SetCommand implements SubCommand {
         map.put("expapplymending", (pond, v) -> setBoolVal(pond::isExpApplyMending, pond::setExpApplyMending, v));
         map.put("xprate", (pond, v) -> setDoubleVal(pond::getXpRate, pond::setXpRate, v, 0, "经验倍率不能为负数！"));
 
+        map.put("moneyenabled", (pond, v) -> setBoolVal(pond::isMoneyEnabled, pond::setMoneyEnabled, v));
         map.put("moneyrewardmode", (pond, v) -> setRewardModeVal(pond::getMoneyRewardMode, pond::setMoneyRewardMode, v, "金币"));
         map.put("moneyrandommin", (pond, v) -> setDoubleVal(pond::getMoneyRandomMin, pond::setMoneyRandomMin, v, 0, "金币随机最小值不能为负数！"));
         map.put("moneyrandommax", (pond, v) -> setDoubleVal(pond::getMoneyRandomMax, pond::setMoneyRandomMax, v, 0, "金币随机最大值不能为负数！"));
@@ -57,6 +62,7 @@ public class SetCommand implements SubCommand {
         map.put("moneymaxdaily", (pond, v) -> setDoubleVal(pond::getMoneyMaxDaily, pond::setMoneyMaxDaily, v, 0, "每日金币上限不能为负数！"));
         map.put("moneyrate", (pond, v) -> setDoubleVal(pond::getMoneyRate, pond::setMoneyRate, v, 0, "金币倍率不能为负数！"));
 
+        map.put("pointenabled", (pond, v) -> setBoolVal(pond::isPointEnabled, pond::setPointEnabled, v));
         map.put("pointrewardmode", (pond, v) -> setRewardModeVal(pond::getPointRewardMode, pond::setPointRewardMode, v, "点券"));
         map.put("pointrandommin", (pond, v) -> setDoubleVal(pond::getPointRandomMin, pond::setPointRandomMin, v, 0, "点券随机最小值不能为负数！"));
         map.put("pointrandommax", (pond, v) -> setDoubleVal(pond::getPointRandomMax, pond::setPointRandomMax, v, 0, "点券随机最大值不能为负数！"));
@@ -65,6 +71,7 @@ public class SetCommand implements SubCommand {
         map.put("pointmaxdaily", (pond, v) -> setDoubleVal(pond::getPointMaxDaily, pond::setPointMaxDaily, v, 0, "每日点券上限不能为负数！"));
         map.put("pointrate", (pond, v) -> setDoubleVal(pond::getPointRate, pond::setPointRate, v, 0, "点券倍率不能为负数！"));
 
+        map.put("commandinterval", (pond, v) -> setLongVal(pond::getCommandInterval, pond::setCommandInterval, v, 1, "命令间隔必须大于0秒！"));
         map.put("requiredpermission", (pond, v) -> {
             String old = pond.getRequiredPermission() != null ? pond.getRequiredPermission() : "null";
             pond.setRequiredPermission(v.equalsIgnoreCase("null") ? null : v);

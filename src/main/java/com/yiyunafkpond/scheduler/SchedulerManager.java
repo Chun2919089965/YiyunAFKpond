@@ -70,10 +70,24 @@ public class SchedulerManager {
     }
 
     private long calculateDelayToNextReset() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        java.time.LocalDateTime nextReset = now.toLocalDate().atStartOfDay();
+        // 读取用户配置的重置时间（默认 "00:00"）
+        String resetTime = plugin.getConfig().getString("reset.time", "00:00");
+        String[] parts = resetTime.split(":");
+        int resetHour = 0;
+        int resetMinute = 0;
+        try {
+            resetHour = Integer.parseInt(parts[0]);
+            resetMinute = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+            resetHour = Math.max(0, Math.min(23, resetHour));
+            resetMinute = Math.max(0, Math.min(59, resetMinute));
+        } catch (NumberFormatException e) {
+            plugin.getLogger().warning("无效的 reset.time 配置: " + resetTime + "，使用默认值 00:00");
+        }
 
-        if (now.isAfter(nextReset)) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime nextReset = now.toLocalDate().atTime(resetHour, resetMinute);
+
+        if (!now.isBefore(nextReset)) {
             nextReset = nextReset.plusDays(1);
         }
 
@@ -86,13 +100,16 @@ public class SchedulerManager {
 
         int resetCount = 0;
 
+        // 遍历所有已加载的玩家数据（包括离线玩家），确保无人遗漏
+        for (PlayerData playerData : plugin.getDataManager().getAllPlayerData()) {
+            playerData.resetDailyData();
+            plugin.getDataManager().queuePlayerDataSave(playerData);
+            resetCount++;
+        }
+
+        // 同时通知 UI 管理器刷新所有在线玩家的显示
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
-            if (playerData != null) {
-                playerData.resetDailyData();
-                plugin.getDataManager().queuePlayerDataSave(playerData);
-                resetCount++;
-            }
+            plugin.getUiManager().markDirty(player);
         }
 
         plugin.getLogger().info("每日数据重置完成，共重置 " + resetCount + " 个玩家的数据");
