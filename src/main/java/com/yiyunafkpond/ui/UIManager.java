@@ -170,20 +170,46 @@ public class UIManager {
 
         if (playerData != null && playerData.isAfk() && playerData.getCurrentPondId() != null) {
             Pond currentPond = plugin.getPondManager().getPond(playerData.getCurrentPondId());
-            if (currentPond != null) {
-                if (actionBarEnabled) {
-                    updateActionBar(player, currentPond, playerData);
-                }
 
-                if (bossBarEnabled) {
-                    updateBossBars(player, currentPond, playerData);
-                }
-            } else {
-                removeAllBossBars(playerId);
+            // 位置校验：防止传送后 BossBar 残留（与 RewardManager.isEligibleForReward 对称防御）
+            if (currentPond == null || !currentPond.isEnabled() || !currentPond.isInPond(player.getLocation())) {
+                healStaleAfkState(player, playerData, playerId);
+                return;
+            }
+
+            if (actionBarEnabled) {
+                updateActionBar(player, currentPond, playerData);
+            }
+
+            if (bossBarEnabled) {
+                updateBossBars(player, currentPond, playerData);
             }
         } else {
             removeAllBossBars(playerId);
         }
+    }
+
+    /**
+     * 检测到过期 AFK 状态时自愈：清理 BossBar + 修复 PlayerData + 清理池追踪。
+     * 这是 UI 层的防御性兜底，即使事件处理漏掉也能自动恢复。
+     */
+    private void healStaleAfkState(Player player, PlayerData data, UUID playerId) {
+        String oldPondId = data.getCurrentPondId();
+
+        removeAllBossBars(playerId);
+        playersNeedingUIUpdate.remove(playerId);
+        dirtyPlayers.remove(playerId);
+
+        data.setAfk(false);
+        data.setCurrentPondId(null);
+        plugin.getDataManager().queuePlayerDataSave(data);
+
+        if (oldPondId != null) {
+            plugin.getPondManager().removePlayerFromPool(oldPondId, playerId);
+            plugin.getSecurityManager().onPlayerLeavePool(player, oldPondId);
+        }
+
+        plugin.debug(player.getName(), "UI 层检测到过期 AFK 状态，已自愈清理: pondId=" + oldPondId);
     }
 
     private void updateActionBar(Player player, Pond pond, PlayerData playerData) {
