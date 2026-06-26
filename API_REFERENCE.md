@@ -2,7 +2,7 @@
 
 # 📡 YiyunAFKpond Developer API
 
-**版本 1.0.4** · 面向第三方插件开发者的完整接口文档
+**版本 1.0.5** · 面向第三方插件开发者的完整接口文档
 
 ---
 
@@ -23,7 +23,7 @@
 <dependency>
     <groupId>com.github.Chun2919089965</groupId>
     <artifactId>YiyunAFKpond</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -36,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Chun2919089965:YiyunAFKpond:1.0.4")
+    compileOnly("com.github.Chun2919089965:YiyunAFKpond:1.0.5")
 }
 ```
 
@@ -48,7 +48,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.Chun2919089965:YiyunAFKpond:1.0.4'
+    compileOnly 'com.github.Chun2919089965:YiyunAFKpond:1.0.5'
 }
 ```
 
@@ -57,7 +57,7 @@ dependencies {
 将插件 JAR 安装到本地 Maven 仓库：
 
 ```bash
-mvn install:install-file -Dfile=YiyunAFKpond-1.0.4.jar -DgroupId=com.yiyunafkpond -DartifactId=YiyunAFKpond -Dversion=1.0.4 -Dpackaging=jar
+mvn install:install-file -Dfile=YiyunAFKpond-1.0.5.jar -DgroupId=com.yiyunafkpond -DartifactId=YiyunAFKpond -Dversion=1.0.5 -Dpackaging=jar
 ```
 
 然后在项目中引用：
@@ -66,7 +66,7 @@ mvn install:install-file -Dfile=YiyunAFKpond-1.0.4.jar -DgroupId=com.yiyunafkpon
 <dependency>
     <groupId>com.yiyunafkpond</groupId>
     <artifactId>YiyunAFKpond</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <scope>provided</scope>
 </dependency>
 ```

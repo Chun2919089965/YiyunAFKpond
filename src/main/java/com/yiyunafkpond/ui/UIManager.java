@@ -171,9 +171,16 @@ public class UIManager {
         if (playerData != null && playerData.isAfk() && playerData.getCurrentPondId() != null) {
             Pond currentPond = plugin.getPondManager().getPond(playerData.getCurrentPondId());
 
-            // 位置校验：防止传送后 BossBar 残留（与 RewardManager.isEligibleForReward 对称防御）
+            // 位置校验：防御传送等瞬时状态导致的 BossBar 残留。
+            // 注意：只做视觉效果清理，不动 PlayerData / 追踪集合 / SecurityManager。
+            // 状态管理由事件系统（PlayerListener）负责，UI 层不越界修改。
             if (currentPond == null || !currentPond.isEnabled() || !currentPond.isInPond(player.getLocation())) {
-                healStaleAfkState(player, playerData, playerId);
+                hideBossBarsForPlayer(playerId);
+                // 保留玩家在 playersNeedingUIUpdate 中，下次周期会重新评估；
+                // 若玩家已真正离开，事件系统会走 handlePlayerLeavePool 正常清理。
+                plugin.debug(player.getName(),
+                    "UI 位置校验未通过，暂时隐藏 BossBar (等待事件系统确认): pondId="
+                        + playerData.getCurrentPondId());
                 return;
             }
 
@@ -189,27 +196,18 @@ public class UIManager {
         }
     }
 
-    /**
-     * 检测到过期 AFK 状态时自愈：清理 BossBar + 修复 PlayerData + 清理池追踪。
-     * 这是 UI 层的防御性兜底，即使事件处理漏掉也能自动恢复。
-     */
-    private void healStaleAfkState(Player player, PlayerData data, UUID playerId) {
-        String oldPondId = data.getCurrentPondId();
-
-        removeAllBossBars(playerId);
-        playersNeedingUIUpdate.remove(playerId);
-        dirtyPlayers.remove(playerId);
-
-        data.setAfk(false);
-        data.setCurrentPondId(null);
-        plugin.getDataManager().queuePlayerDataSave(data);
-
-        if (oldPondId != null) {
-            plugin.getPondManager().removePlayerFromPool(oldPondId, playerId);
-            plugin.getSecurityManager().onPlayerLeavePool(player, oldPondId);
+    /** 仅隐藏指定玩家的全部 BossBar（不从跟踪集合移除），用于瞬时位置校验未通过时的 UI 层清理。 */
+    private void hideBossBarsForPlayer(UUID playerId) {
+        EnumMap<BarType, BossBar> bars = playerBossBars.get(playerId);
+        if (bars != null) {
+            Player player = plugin.getSchedulerManager().getAdapter().getPlayer(playerId);
+            if (player != null) {
+                for (BossBar bar : bars.values()) {
+                    player.hideBossBar(bar);
+                }
+            }
+            playerBossBars.remove(playerId);
         }
-
-        plugin.debug(player.getName(), "UI 层检测到过期 AFK 状态，已自愈清理: pondId=" + oldPondId);
     }
 
     private void updateActionBar(Player player, Pond pond, PlayerData playerData) {
@@ -386,6 +384,7 @@ public class UIManager {
     public void reload() {
         loadConfig();
 
+        // 清理所有旧 BossBar
         for (Map.Entry<UUID, EnumMap<BarType, BossBar>> entry : new HashMap<>(playerBossBars).entrySet()) {
             Player player = plugin.getSchedulerManager().getAdapter().getPlayer(entry.getKey());
             if (player != null) {
@@ -395,11 +394,18 @@ public class UIManager {
             }
         }
         playerBossBars.clear();
+        playersNeedingUIUpdate.clear();
+        dirtyPlayers.clear();
 
-        if ((actionBarEnabled || bossBarEnabled) && (updateTask == null)) {
+        // 无条件停掉旧任务并置空引用
+        // shutdownAllSchedulers → cancelAllTasks 已取消底层任务，但 updateTask 引用未清
+        if (updateTask != null) {
+            updateTask = null;
+        }
+
+        // 按需启动新任务
+        if (actionBarEnabled || bossBarEnabled) {
             start();
-        } else if (!actionBarEnabled && !bossBarEnabled && updateTask != null) {
-            stop();
         }
     }
 
