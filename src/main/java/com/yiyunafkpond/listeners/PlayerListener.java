@@ -55,7 +55,7 @@ public class PlayerListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         plugin.getDataManager().getOrCreatePlayerData(player);
-        plugin.getLogger().info("玩家 " + player.getName() + " 已加入服务器，已初始化数据!");
+        plugin.debug("玩家 " + player.getName() + " 已加入服务器，已初始化数据!");
     }
     
     @EventHandler
@@ -85,7 +85,7 @@ public class PlayerListener implements Listener {
         }
         
         plugin.getDataManager().removePlayerData(uuid);
-        plugin.getLogger().info("玩家 " + player.getName() + " 已离开服务器，数据已保存!");
+        plugin.debug("玩家 " + player.getName() + " 已离开服务器，数据已保存!");
     }
     
     @EventHandler
@@ -171,10 +171,15 @@ public class PlayerListener implements Listener {
         String pondId = playerData.getCurrentPondId();
         if (pondId == null) return;
 
+        // 如果传送事件本身已经处理了进出池逻辑（handlePoolTransition），
+        // currentPondId 可能已被清空，此时无需重复处理
         Pond pond = plugin.getPondManager().getPond(pondId);
         if (pond == null || !pond.isEnabled() || !pond.isInPond(player.getLocation())) {
-            handlePlayerLeavePool(player, pondId, playerData, false);
-            plugin.debug(player.getName(), "传送后验证失败，自动清理过期挂机状态: pondId=" + pondId);
+            // 再次确认状态未被并发清理
+            if (playerData.isAfk() && pondId.equals(playerData.getCurrentPondId())) {
+                handlePlayerLeavePool(player, pondId, playerData, false);
+                plugin.debug(player.getName(), "传送后验证失败，自动清理过期挂机状态: pondId=" + pondId);
+            }
         }
     }
     
@@ -216,8 +221,11 @@ public class PlayerListener implements Listener {
     private void handlePoolTransition(Player player, Location from, Location to, PlayerMoveEvent event) {
         PlayerData playerData = plugin.getDataManager().getOrCreatePlayerData(player);
 
-        Pond currentPond = plugin.getPondManager().getPondByLocation(from);
+        // 短路：玩家未在挂机状态且不在任何池中，则只在 to 位置有新池时才需处理
+        boolean wasAfk = playerData.isAfk() && playerData.getCurrentPondId() != null;
+
         Pond newPond = plugin.getPondManager().getPondByLocation(to);
+        Pond currentPond = wasAfk ? plugin.getPondManager().getPondByLocation(from) : null;
 
         if (currentPond != null && newPond == null) {
             handlePlayerLeavePool(player, currentPond.getId(), playerData, event != null);

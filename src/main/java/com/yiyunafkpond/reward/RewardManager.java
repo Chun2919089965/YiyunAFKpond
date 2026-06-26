@@ -100,7 +100,7 @@ public class RewardManager {
 
     public void startPoolRewardTasks(Pond pond) {
         String poolId = pond.getId();
-        plugin.getLogger().info("为挂机池 " + poolId + " 启动奖励任务");
+        plugin.debug("为挂机池 " + poolId + " 启动奖励任务");
 
         cancelTask(expTasks, poolId);
         cancelTask(moneyTasks, poolId);
@@ -117,7 +117,7 @@ public class RewardManager {
         startPointTask(pond);
         startCommandTask(pond);
 
-        plugin.getLogger().info("挂机池 " + poolId + " 奖励任务启动完成");
+        plugin.debug("挂机池 " + poolId + " 奖励任务启动完成");
     }
 
     private void cancelTask(Map<String, WrappedTask> tasks, String poolId) {
@@ -331,7 +331,7 @@ public class RewardManager {
             if (players.isEmpty()) return;
 
             for (Player player : players) {
-                if (!isEligibleForReward(player, pond)) continue;
+                if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
 
                 for (String cmd : cmds) {
                     String processed = null;

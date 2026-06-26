@@ -119,6 +119,7 @@ public class UIManager {
             }
         }
         playerBossBars.clear();
+        playersNeedingUIUpdate.clear();
         dirtyPlayers.clear();
 
         if (plugin.isDebugMode()) {

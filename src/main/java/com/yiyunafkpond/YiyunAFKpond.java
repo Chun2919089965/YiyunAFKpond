@@ -275,6 +275,11 @@ public class YiyunAFKpond extends JavaPlugin {
         pondManager.reloadPonds();
 
         schedulerManager.shutdownAllSchedulers();
+
+        // 先重扫描池内玩家（填充 playersByPool），再启动奖励任务，避免任务启动时空窗
+        securityManager.clearIpIndex();
+        rescanPlayersInPonds();
+
         schedulerManager.startAllSchedulers();
 
         if (rewardManager != null) {
@@ -288,9 +293,6 @@ public class YiyunAFKpond extends JavaPlugin {
         if (bStatsManager != null) {
             bStatsManager.reload();
         }
-
-        securityManager.clearIpIndex();
-        rescanPlayersInPonds();
 
         getLogger().info("新配置已成功应用!");
     }
