@@ -75,6 +75,7 @@ public class PlayerListener implements Listener {
         plugin.getRewardManager().cleanupPlayerData(uuid);
         plugin.getSecurityManager().onPlayerQuit(uuid);
         plugin.getPondManager().removePlayerFromAllPools(uuid);
+        plugin.getSelectionManager().cancelParticleRender(player);
         
         if (currentPondId != null && playerData != null) {
             Pond pond = plugin.getPondManager().getPond(currentPondId);

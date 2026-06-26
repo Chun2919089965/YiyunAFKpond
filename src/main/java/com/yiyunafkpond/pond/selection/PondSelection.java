@@ -74,4 +74,26 @@ public class PondSelection {
         
         return (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
     }
+
+    /** @return 选区的最小角坐标，选区未完成返回 null */
+    public Location getMinPoint() {
+        if (!isComplete()) return null;
+        return new Location(
+            firstPoint.getWorld(),
+            Math.min(firstPoint.getBlockX(), secondPoint.getBlockX()),
+            Math.min(firstPoint.getBlockY(), secondPoint.getBlockY()),
+            Math.min(firstPoint.getBlockZ(), secondPoint.getBlockZ())
+        );
+    }
+
+    /** @return 选区的最大角坐标，选区未完成返回 null */
+    public Location getMaxPoint() {
+        if (!isComplete()) return null;
+        return new Location(
+            firstPoint.getWorld(),
+            Math.max(firstPoint.getBlockX(), secondPoint.getBlockX()),
+            Math.max(firstPoint.getBlockY(), secondPoint.getBlockY()),
+            Math.max(firstPoint.getBlockZ(), secondPoint.getBlockZ())
+        );
+    }
 }
