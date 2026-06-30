@@ -134,6 +134,41 @@ public class PondManager {
     public void reloadPonds() {
         loadPonds();
     }
+
+    /**
+     * 加载指定世界中尚未加载的池（用于 WorldLoadEvent 时补充启动时因世界未就绪而跳过的池）。
+     * 不会清除已有的池和追踪数据。
+     * @return 新加载的池 ID 列表（用于调用方为它们启动奖励任务）
+     */
+    public List<String> loadPondsForWorld(String worldName) {
+        this.pondsConfig = YamlConfiguration.loadConfiguration(pondsFile);
+
+        if (!pondsConfig.contains("ponds")) return List.of();
+
+        ConfigurationSection pondsSection = pondsConfig.getConfigurationSection("ponds");
+        List<String> newPondIds = new ArrayList<>();
+
+        for (String pondId : pondsSection.getKeys(false)) {
+            if (ponds.containsKey(pondId)) continue; // 已加载
+
+            ConfigurationSection pondSection = pondsSection.getConfigurationSection(pondId);
+            String pondWorldName = pondSection.getString("world");
+            if (!worldName.equals(pondWorldName)) continue; // 不属于这个世界
+
+            Pond pond = loadPondFromConfig(pondId, pondSection);
+            if (pond != null) {
+                ponds.put(pondId, pond);
+                addPondToWorldMap(pond);
+                newPondIds.add(pondId);
+            }
+        }
+
+        if (!newPondIds.isEmpty()) {
+            plugin.getLogger().info("世界 " + worldName + " 加载时补充加载了 " + newPondIds.size() + " 个挂机池: " + newPondIds);
+            checkPondOverlaps();
+        }
+        return newPondIds;
+    }
     
     // 从配置加载池
     private Pond loadPondFromConfig(String pondId, ConfigurationSection pondSection) {
