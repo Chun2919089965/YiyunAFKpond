@@ -25,6 +25,7 @@ public class SecurityManager {
 
     private final Map<String, Map<String, Set<UUID>>> ipPoolIndex = new ConcurrentHashMap<>();
     private final Map<UUID, String> playerIpCache = new ConcurrentHashMap<>();
+    private final Object ipIndexLock = new Object();
 
     public SecurityManager(YiyunAFKpond plugin) {
         this.plugin = plugin;
@@ -39,7 +40,7 @@ public class SecurityManager {
 
         ipLimitEnabled = plugin.getConfig().getBoolean("security.ip-limit.enabled", false);
         ipLimitMode = plugin.getConfig().getString("security.ip-limit.mode", "global");
-        maxPerIp = plugin.getConfig().getInt("security.ip-limit.max-per-ip", 1);
+        maxPerIp = Math.max(1, plugin.getConfig().getInt("security.ip-limit.max-per-ip", 1));
         ipLimitBypassPermission = plugin.getConfig().getString("security.ip-limit.bypass-permission", "yiyunafkpond.bypass.ip");
         ipLimitMessage = plugin.getConfig().getString("security.ip-limit.message", "&#6CA6CD检测到同IP已有其他角色在挂机池中，已阻止进入！");
     }
@@ -51,12 +52,15 @@ public class SecurityManager {
 
         Player player = event.getPlayer();
         Pond targetPool = plugin.getPondManager().getPondByLocation(event.getTo());
+        Pond sourcePool = plugin.getPondManager().getPondByLocation(event.getFrom());
+        boolean staysInSamePool = sourcePool != null && targetPool != null
+                && sourcePool.getId().equals(targetPool.getId());
 
-        if (targetPool != null && !player.hasPermission(teleportBypassPermission)) {
+        if (targetPool != null && !staysInSamePool && !player.hasPermission(teleportBypassPermission)) {
             event.setCancelled(true);
             plugin.sendPlayerMessage(player, teleportInterceptMessage);
             plugin.sendPlayerMessage(player, plugin.getLanguageManager().getMessage("player.teleport-intercept"));
-        } else if (targetPool != null && player.hasPermission(teleportBypassPermission)) {
+        } else if (targetPool != null && !staysInSamePool && player.hasPermission(teleportBypassPermission)) {
             plugin.sendPlayerMessage(player, "&#87CEEB您已绕过传送限制，传送到挂机池区域");
         }
     }
@@ -80,6 +84,12 @@ public class SecurityManager {
     }
 
     public boolean canPlayerEnterPoolByIp(Player player, Pond pond) {
+        synchronized (ipIndexLock) {
+            return canPlayerEnterPoolByIpLocked(player, pond);
+        }
+    }
+
+    private boolean canPlayerEnterPoolByIpLocked(Player player, Pond pond) {
         if (!ipLimitEnabled || pond == null) {
             return true;
         }
@@ -94,18 +104,38 @@ public class SecurityManager {
         }
 
         if ("per-pool".equalsIgnoreCase(ipLimitMode)) {
-            int count = getIpCountForPool(ip, pond.getId());
+            int count = getOtherPlayerCountForPool(ip, pond.getId(), player.getUniqueId());
             return count < maxPerIp;
         } else {
-            int count = getIpCountGlobal(ip);
+            int count = getOtherPlayerCountGlobal(ip, player.getUniqueId());
             return count < maxPerIp;
         }
     }
 
+    /**
+     * 原子执行 IP 准入检查与索引登记，避免 Folia 多区域并发进入时突破人数上限。
+     */
+    public boolean tryRegisterPlayerInPool(Player player, Pond pond) {
+        if (pond == null) return false;
+        synchronized (ipIndexLock) {
+            if (!canPlayerEnterPoolByIpLocked(player, pond)) return false;
+            registerPlayerInPoolLocked(player, pond.getId());
+            return true;
+        }
+    }
+
     public void onPlayerEnterPool(Player player, String pondId) {
+        synchronized (ipIndexLock) {
+            registerPlayerInPoolLocked(player, pondId);
+        }
+    }
+
+    private void registerPlayerInPoolLocked(Player player, String pondId) {
         String ip = getPlayerIp(player);
         if (ip == null) return;
 
+        // 重复同步和跨池切换都只允许保留一份 IP 索引。
+        removePlayerFromIpIndexLocked(player.getUniqueId());
         playerIpCache.put(player.getUniqueId(), ip);
         ipPoolIndex.computeIfAbsent(ip, k -> new ConcurrentHashMap<>())
                 .computeIfAbsent(pondId, k -> ConcurrentHashMap.newKeySet())
@@ -113,25 +143,12 @@ public class SecurityManager {
     }
 
     public void onPlayerLeavePool(Player player, String pondId) {
-        String ip = playerIpCache.remove(player.getUniqueId());
-        if (ip == null) return;
-
-        Map<String, Set<UUID>> poolMap = ipPoolIndex.get(ip);
-        if (poolMap == null) return;
-
-        Set<UUID> players = poolMap.get(pondId);
-        if (players != null) {
-            players.remove(player.getUniqueId());
-            if (players.isEmpty()) {
-                poolMap.remove(pondId);
-            }
-        }
-        if (poolMap.isEmpty()) {
-            ipPoolIndex.remove(ip);
+        synchronized (ipIndexLock) {
+            removePlayerFromIpIndexLocked(player.getUniqueId());
         }
     }
 
-    public void onPlayerQuit(UUID uuid) {
+    private void removePlayerFromIpIndexLocked(UUID uuid) {
         String ip = playerIpCache.remove(uuid);
         if (ip == null) return;
 
@@ -151,29 +168,46 @@ public class SecurityManager {
         }
     }
 
+    public void onPlayerQuit(UUID uuid) {
+        synchronized (ipIndexLock) {
+            removePlayerFromIpIndexLocked(uuid);
+        }
+    }
+
     public void onPlayerSwitchPool(Player player, String oldPondId, String newPondId) {
-        onPlayerLeavePool(player, oldPondId);
         onPlayerEnterPool(player, newPondId);
     }
 
     public void clearIpIndex() {
-        ipPoolIndex.clear();
-        playerIpCache.clear();
+        synchronized (ipIndexLock) {
+            ipPoolIndex.clear();
+            playerIpCache.clear();
+        }
     }
 
-    private int getIpCountForPool(String ip, String pondId) {
+    private int getOtherPlayerCountForPool(String ip, String pondId, UUID excludedPlayer) {
         Map<String, Set<UUID>> poolMap = ipPoolIndex.get(ip);
         if (poolMap == null) return 0;
         Set<UUID> players = poolMap.get(pondId);
-        return players == null ? 0 : players.size();
+        return countOtherPlayers(players, excludedPlayer);
     }
 
-    private int getIpCountGlobal(String ip) {
+    private int getOtherPlayerCountGlobal(String ip, UUID excludedPlayer) {
         Map<String, Set<UUID>> poolMap = ipPoolIndex.get(ip);
         if (poolMap == null) return 0;
-        int total = 0;
+        Set<UUID> uniquePlayers = new HashSet<>();
         for (Set<UUID> players : poolMap.values()) {
-            total += players.size();
+            uniquePlayers.addAll(players);
+        }
+        uniquePlayers.remove(excludedPlayer);
+        return uniquePlayers.size();
+    }
+
+    static int countOtherPlayers(Set<UUID> players, UUID excludedPlayer) {
+        if (players == null || players.isEmpty()) return 0;
+        int total = 0;
+        for (UUID uuid : players) {
+            if (!uuid.equals(excludedPlayer)) total++;
         }
         return total;
     }

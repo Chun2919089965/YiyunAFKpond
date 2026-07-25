@@ -64,6 +64,7 @@ public class PlayerSubCommand implements SubCommand {
         PlayerData data = plugin.getDataManager().getPlayerData(target.getUniqueId());
         
         if (args.length < 4) {
+            plugin.getApi().setPlayerNotAfk(target);
             plugin.getDataManager().removePlayerData(data.getUuid());
             plugin.sendPlayerMessage(sender, "&#87CEEB已删除玩家 &#B0E0E6" + target.getName() + " &#87CEEB的所有数据");
         } else if (args[3].equalsIgnoreCase("daily")) {
@@ -97,16 +98,37 @@ public class PlayerSubCommand implements SubCommand {
         
         switch (property) {
             case "afk" -> {
+                if (!args[4].equalsIgnoreCase("true") && !args[4].equalsIgnoreCase("false")) {
+                    plugin.sendPlayerMessage(sender, "&#6CA6CDAFK状态只能是 true 或 false");
+                    return true;
+                }
                 boolean afk = Boolean.parseBoolean(args[4]);
-                data.setAfk(afk);
-                if (afk && args.length >= 6) data.setCurrentPondId(args[5]);
-                plugin.getDataManager().savePlayerData(data);
+                if (afk && args.length < 6) {
+                    plugin.sendPlayerMessage(sender, "&#6CA6CD启用AFK状态时必须提供池ID：/yafk player set <玩家> afk true <池ID>");
+                    return true;
+                }
+                if (afk) {
+                    plugin.getApi().setPlayerAfk(target, args[5]);
+                } else {
+                    plugin.getApi().setPlayerNotAfk(target);
+                }
+                if (afk && (!data.isAfk() || !args[5].equals(data.getCurrentPondId()))) {
+                    plugin.sendPlayerMessage(sender, "&#6CA6CD设置失败：挂机池不存在、未启用，或玩家不满足权限/IP限制");
+                    return true;
+                }
                 plugin.sendPlayerMessage(sender, "&#87CEEB已设置 &#B0E0E6" + target.getName() + " &#87CEEB的AFK状态为 &#B0E0E6" + afk);
             }
             case "currentpondid" -> {
                 String pondId = args[4].equalsIgnoreCase("none") ? null : args[4];
-                data.setCurrentPondId(pondId);
-                plugin.getDataManager().savePlayerData(data);
+                if (pondId == null) {
+                    plugin.getApi().setPlayerNotAfk(target);
+                } else {
+                    plugin.getApi().setPlayerAfk(target, pondId);
+                }
+                if (pondId != null && (!data.isAfk() || !pondId.equals(data.getCurrentPondId()))) {
+                    plugin.sendPlayerMessage(sender, "&#6CA6CD设置失败：挂机池不存在、未启用，或玩家不满足权限/IP限制");
+                    return true;
+                }
                 plugin.sendPlayerMessage(sender, "&#87CEEB已设置 &#B0E0E6" + target.getName() + " &#87CEEB的当前池为 &#B0E0E6" + (pondId != null ? pondId : "无"));
             }
             case "pond" -> {

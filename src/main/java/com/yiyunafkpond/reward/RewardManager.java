@@ -175,7 +175,7 @@ public class RewardManager {
                 List<Player> players = getPlayersInPond(pond);
                 for (Player player : players) {
                     PlayerData data = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
-                    if (data != null && data.isAfk() && pond.getId().equals(data.getCurrentPondId())) {
+                    if (data != null && isEligibleForReward(player, data, pond)) {
                         data.addAfkTime(Constants.MILLISECONDS_PER_SECOND);
                         data.addPondAfkTime(pond.getId(), Constants.MILLISECONDS_PER_SECOND);
                     }
@@ -219,10 +219,8 @@ public class RewardManager {
             if (players.isEmpty()) return;
 
             for (Player player : players) {
-                if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
-
                 PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
-                if (playerData == null) continue;
+                if (playerData == null || !isEligibleForReward(player, playerData, pond)) continue;
                 playerData.checkAndResetDailyData();
 
                 if (processor.process(player, playerData, pond)) {
@@ -336,7 +334,8 @@ public class RewardManager {
             if (players.isEmpty()) return;
 
             for (Player player : players) {
-                if (!player.isOnline() || !isEligibleForReward(player, pond)) continue;
+                PlayerData playerData = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
+                if (playerData == null || !isEligibleForReward(player, playerData, pond)) continue;
 
                 for (String cmd : cmds) {
                     String processed = null;
@@ -435,10 +434,15 @@ public class RewardManager {
      * 1. 玩家是否真实位于挂机池区域内（防止传送后状态未清理的奖励泄漏）
      * 2. 玩家是否拥有进入该池的权限
      */
-    private boolean isEligibleForReward(Player player, Pond pond) {
-        return pond.isEnabled()
+    private boolean isEligibleForReward(Player player, PlayerData playerData, Pond pond) {
+        return player.isOnline()
+                && pond.isEnabled()
+                && playerData.isAfk()
+                && pond.getId().equals(playerData.getCurrentPondId())
+                && plugin.getPondManager().isPlayerTracked(pond.getId(), player.getUniqueId())
                 && pond.isInPond(player.getLocation())
-                && plugin.getSecurityManager().canPlayerEnterPool(player, pond);
+                && plugin.getSecurityManager().canPlayerEnterPool(player, pond)
+                && plugin.getSecurityManager().canPlayerEnterPoolByIp(player, pond);
     }
 
     private long calculateExperienceAmount(Pond pond) {

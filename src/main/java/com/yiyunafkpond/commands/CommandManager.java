@@ -67,6 +67,11 @@ public class CommandManager implements CommandExecutor {
             plugin.sendPlayerMessage(sender, "&#6CA6CD未知命令: /yafk " + args[0] + "，请使用 /yafk help 查看帮助信息。");
             return true;
         }
+
+        if (!plugin.isFullyInitialized() && !"help".equals(subCommand.getName())) {
+            plugin.sendPlayerMessage(sender, "&#6CA6CD插件核心模块仍在初始化，请稍后重试。");
+            return true;
+        }
         
         if (!sender.hasPermission(subCommand.getPermission())) {
             plugin.sendPlayerMessage(sender, "&#6CA6CD你没有权限执行此命令!");

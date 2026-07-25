@@ -19,8 +19,6 @@ import com.yiyunafkpond.ui.UIManager;
 import com.yiyunafkpond.api.YiyunAFKpondAPI;
 import com.yiyunafkpond.audit.AuditLogger;
 import com.yiyunafkpond.util.ColorUtil;
-import com.yiyunafkpond.data.PlayerData;
-import com.yiyunafkpond.pond.Pond;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -174,10 +172,12 @@ public class YiyunAFKpond extends JavaPlugin {
 
     private void startSchedulers() {
         schedulerManager.startAllSchedulers();
+        if (playerListener != null) playerListener.startPresenceReconciliation();
         if (uiManager != null) uiManager.start();
     }
 
     private void shutdownSchedulers() {
+        if (playerListener != null) playerListener.stopPresenceReconciliation();
         schedulerManager.shutdownAllSchedulers();
         if (uiManager != null) uiManager.stop();
         if (rewardManager != null) rewardManager.stopAllRewardTasks();
@@ -247,33 +247,8 @@ public class YiyunAFKpond extends JavaPlugin {
         securityManager.clearIpIndex();
 
         for (Player player : getServer().getOnlinePlayers()) {
-            PlayerData playerData = dataManager.getOrCreatePlayerData(player);
-            if (playerData == null) continue;
-
-            boolean wasAfk = playerData.isAfk();
-            String previousPondId = playerData.getCurrentPondId();
-            Pond pond = pondManager.getPondByLocation(player.getLocation());
-            boolean canEnter = pond != null
-                    && securityManager.canPlayerEnterPool(player, pond)
-                    && securityManager.canPlayerEnterPoolByIp(player, pond);
-
-            if (canEnter) {
-                playerData.setCurrentPondId(pond.getId());
-                playerData.setAfk(true);
-                securityManager.onPlayerEnterPool(player, pond.getId());
-                pondManager.addPlayerToPool(pond.getId(), player.getUniqueId());
-                if (uiManager != null) uiManager.registerPlayerForUpdate(player);
-                debug(player.getName(), "重新检测到玩家在挂机池: " + pond.getName());
-            } else {
-                playerData.setCurrentPondId(null);
-                playerData.setAfk(false);
-                if (uiManager != null) uiManager.unregisterPlayerForUpdate(player);
-            }
-
-            if (wasAfk != playerData.isAfk()
-                    || !java.util.Objects.equals(previousPondId, playerData.getCurrentPondId())) {
-                dataManager.queuePlayerDataSave(playerData);
-            }
+            schedulerManager.getAdapter().runAtEntity(player,
+                    () -> playerListener.reconcilePlayerPondState(player, false));
         }
     }
 
@@ -301,7 +276,10 @@ public class YiyunAFKpond extends JavaPlugin {
             uiManager.reload();
         }
 
-        if (playerListener != null) playerListener.reloadTitleSettings();
+        if (playerListener != null) {
+            playerListener.reloadTitleSettings();
+            playerListener.startPresenceReconciliation();
+        }
 
         if (bStatsManager != null) {
             bStatsManager.reload();

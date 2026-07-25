@@ -4,6 +4,8 @@
 core:
   debug: false          # 调试模式，启用后输出详细日志
   auto-complete: true   # 自动补全缺失配置项
+  # 玩家位置自愈间隔（秒），用于兼容家具座椅、载具和其他插件移动
+  presence-reconcile-interval: 1
 
 # 数据存储设置
 storage:

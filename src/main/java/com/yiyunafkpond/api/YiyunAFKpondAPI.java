@@ -200,7 +200,11 @@ public final class YiyunAFKpondAPI {
         plugin.getSecurityManager().onPlayerQuit(player.getUniqueId());
         plugin.getPondManager().removePlayerFromAllPools(player.getUniqueId());
 
-        if (pond == null || !pond.isEnabled()) {
+        boolean canEnter = pond != null
+                && pond.isEnabled()
+                && plugin.getSecurityManager().canPlayerEnterPool(player, pond)
+                && plugin.getSecurityManager().tryRegisterPlayerInPool(player, pond);
+        if (!canEnter) {
             pd.setAfk(false);
             pd.setCurrentPondId(null);
             plugin.getUiManager().unregisterPlayerForUpdate(player);
@@ -210,7 +214,6 @@ public final class YiyunAFKpondAPI {
 
         pd.setAfk(true);
         pd.setCurrentPondId(pondId);
-        plugin.getSecurityManager().onPlayerEnterPool(player, pondId);
         plugin.getPondManager().addPlayerToPool(pondId, player.getUniqueId());
         plugin.getDataManager().queuePlayerDataSave(pd);
         plugin.getUiManager().registerPlayerForUpdate(player);

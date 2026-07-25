@@ -562,6 +562,11 @@ public class PondManager {
         }
     }
 
+    public boolean isPlayerTracked(String pondId, UUID playerUuid) {
+        Set<UUID> uuids = playersByPool.get(pondId);
+        return uuids != null && uuids.contains(playerUuid);
+    }
+
     public void removePlayerFromAllPools(UUID playerUuid) {
         for (Set<UUID> uuids : playersByPool.values()) {
             uuids.remove(playerUuid);
