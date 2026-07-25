@@ -35,7 +35,7 @@ public class SecurityManager {
         teleportInterceptEnabled = plugin.getConfig().getBoolean("security.teleport-intercept.enabled", true);
         teleportInterceptMessage = plugin.getConfig().getString("security.teleport-intercept.message", "&#6CA6CD您不能直接传送到挂机池区域！");
         teleportBypassPermission = plugin.getConfig().getString("security.teleport-intercept.bypass-permission", "yiyunafkpond.bypass.teleport");
-        enterPermissionCheckEnabled = plugin.getConfig().getBoolean("security.enter-permission-check.enabled", true);
+        enterPermissionCheckEnabled = plugin.getConfig().getBoolean("security.enter-permission-check.enabled", false);
 
         ipLimitEnabled = plugin.getConfig().getBoolean("security.ip-limit.enabled", false);
         ipLimitMode = plugin.getConfig().getString("security.ip-limit.mode", "global");

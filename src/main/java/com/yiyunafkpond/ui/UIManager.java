@@ -398,9 +398,9 @@ public class UIManager {
         playersNeedingUIUpdate.clear();
         dirtyPlayers.clear();
 
-        // 无条件停掉旧任务并置空引用
-        // shutdownAllSchedulers → cancelAllTasks 已取消底层任务，但 updateTask 引用未清
+        // UI 管理器只取消自己持有的任务，避免影响数据保存或奖励调度。
         if (updateTask != null) {
+            updateTask.cancel();
             updateTask = null;
         }
 

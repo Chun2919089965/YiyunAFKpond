@@ -151,21 +151,13 @@ public class Pond {
             return;
         }
         
-        // 计算真实的最小和最大坐标
-        double realMinX = Math.min(minPoint.getX(), maxPoint.getX());
-        double realMinY = Math.min(minPoint.getY(), maxPoint.getY());
-        double realMinZ = Math.min(minPoint.getZ(), maxPoint.getZ());
-        double realMaxX = Math.max(minPoint.getX(), maxPoint.getX());
-        double realMaxY = Math.max(minPoint.getY(), maxPoint.getY());
-        double realMaxZ = Math.max(minPoint.getZ(), maxPoint.getZ());
-        
-        // 转换为方块坐标并缓存
-        this.cachedMinBlockX = (int) Math.floor(realMinX);
-        this.cachedMinBlockY = (int) Math.floor(realMinY);
-        this.cachedMinBlockZ = (int) Math.floor(realMinZ);
-        this.cachedMaxBlockX = (int) Math.ceil(realMaxX) - 1;
-        this.cachedMaxBlockY = (int) Math.ceil(realMaxY) - 1;
-        this.cachedMaxBlockZ = (int) Math.ceil(realMaxZ) - 1;
+        // 两个端点都表示被选中的方块，因此最大端点也必须包含在区域内。
+        this.cachedMinBlockX = Math.min(minPoint.getBlockX(), maxPoint.getBlockX());
+        this.cachedMinBlockY = Math.min(minPoint.getBlockY(), maxPoint.getBlockY());
+        this.cachedMinBlockZ = Math.min(minPoint.getBlockZ(), maxPoint.getBlockZ());
+        this.cachedMaxBlockX = Math.max(minPoint.getBlockX(), maxPoint.getBlockX());
+        this.cachedMaxBlockY = Math.max(minPoint.getBlockY(), maxPoint.getBlockY());
+        this.cachedMaxBlockZ = Math.max(minPoint.getBlockZ(), maxPoint.getBlockZ());
     }
     
     // 检查位置是否在池内
@@ -586,50 +578,45 @@ public class Pond {
         if (minPoint == null || maxPoint == null) {
             return 0;
         }
-        
-        int width = (int) (maxPoint.getX() - minPoint.getX() + 1);
-        int height = (int) (maxPoint.getY() - minPoint.getY() + 1);
-        int depth = (int) (maxPoint.getZ() - minPoint.getZ() + 1);
-        
-        // 确保所有维度都是正数
-        width = Math.max(1, width);
-        height = Math.max(1, height);
-        depth = Math.max(1, depth);
-        
-        return width * height * depth;
+
+        long width = (long) cachedMaxBlockX - cachedMinBlockX + 1;
+        long height = (long) cachedMaxBlockY - cachedMinBlockY + 1;
+        long depth = (long) cachedMaxBlockZ - cachedMinBlockZ + 1;
+        long size = width * height * depth;
+        return size > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) size;
     }
     
     // 获取最小X坐标
     public int getMinX() {
-        return minPoint != null ? (int) minPoint.getX() : 0;
+        return minPoint != null ? cachedMinBlockX : 0;
     }
 
     public int getMaxX() {
-        return maxPoint != null ? (int) maxPoint.getX() : 0;
+        return maxPoint != null ? cachedMaxBlockX : 0;
     }
 
     public int getMinY() {
-        return minPoint != null ? (int) minPoint.getY() : 0;
+        return minPoint != null ? cachedMinBlockY : 0;
     }
 
     public int getMaxY() {
-        return maxPoint != null ? (int) maxPoint.getY() : 0;
+        return maxPoint != null ? cachedMaxBlockY : 0;
     }
 
     public int getMinZ() {
-        return minPoint != null ? (int) minPoint.getZ() : 0;
+        return minPoint != null ? cachedMinBlockZ : 0;
     }
 
     public int getMaxZ() {
-        return maxPoint != null ? (int) maxPoint.getZ() : 0;
+        return maxPoint != null ? cachedMaxBlockZ : 0;
     }
     
     // 获取中心位置
     public Location getCenterLocation() {
         if (world == null || minPoint == null || maxPoint == null) return null;
-        double centerX = (minPoint.getX() + maxPoint.getX()) / 2.0;
-        double centerY = (minPoint.getY() + maxPoint.getY()) / 2.0;
-        double centerZ = (minPoint.getZ() + maxPoint.getZ()) / 2.0;
+        double centerX = (cachedMinBlockX + cachedMaxBlockX + 1) / 2.0;
+        double centerY = (cachedMinBlockY + cachedMaxBlockY + 1) / 2.0;
+        double centerZ = (cachedMinBlockZ + cachedMaxBlockZ + 1) / 2.0;
         return new Location(world, centerX, centerY, centerZ);
     }
     

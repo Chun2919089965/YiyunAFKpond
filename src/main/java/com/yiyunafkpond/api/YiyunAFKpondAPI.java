@@ -65,18 +65,9 @@ public final class YiyunAFKpondAPI {
 
         plugin.getRewardManager().stopPoolRewardTasks(pond);
 
-        List<Player> playersInPond = plugin.getPondManager().getPlayersInPond(pond);
-        for (Player player : playersInPond) {
-            PlayerData pd = plugin.getDataManager().getPlayerData(player.getUniqueId());
-            if (pd != null) {
-                pd.setAfk(false);
-                pd.setCurrentPondId(null);
-                plugin.getUiManager().unregisterPlayerForUpdate(player);
-            }
-        }
-
         boolean deleted = plugin.getPondManager().deletePond(pondId);
         if (deleted) {
+            plugin.rescanPlayersInPonds();
             plugin.getPondManager().savePonds(true);
         }
         return deleted;
@@ -92,6 +83,7 @@ public final class YiyunAFKpondAPI {
         } else {
             plugin.getRewardManager().stopPoolRewardTasks(pond);
         }
+        plugin.rescanPlayersInPonds();
         return pond.isEnabled();
     }
 
@@ -203,8 +195,23 @@ public final class YiyunAFKpondAPI {
 
     public void setPlayerAfk(Player player, String pondId) {
         PlayerData pd = plugin.getDataManager().getOrCreatePlayerData(player);
+        Pond pond = plugin.getPondManager().getPond(pondId);
+
+        plugin.getSecurityManager().onPlayerQuit(player.getUniqueId());
+        plugin.getPondManager().removePlayerFromAllPools(player.getUniqueId());
+
+        if (pond == null || !pond.isEnabled()) {
+            pd.setAfk(false);
+            pd.setCurrentPondId(null);
+            plugin.getUiManager().unregisterPlayerForUpdate(player);
+            plugin.getDataManager().queuePlayerDataSave(pd);
+            return;
+        }
+
         pd.setAfk(true);
         pd.setCurrentPondId(pondId);
+        plugin.getSecurityManager().onPlayerEnterPool(player, pondId);
+        plugin.getPondManager().addPlayerToPool(pondId, player.getUniqueId());
         plugin.getDataManager().queuePlayerDataSave(pd);
         plugin.getUiManager().registerPlayerForUpdate(player);
     }
@@ -212,6 +219,8 @@ public final class YiyunAFKpondAPI {
     public void setPlayerNotAfk(Player player) {
         PlayerData pd = getPlayerDataSafely(player);
         if (pd != null) {
+            plugin.getSecurityManager().onPlayerQuit(player.getUniqueId());
+            plugin.getPondManager().removePlayerFromAllPools(player.getUniqueId());
             pd.setAfk(false);
             pd.setCurrentPondId(null);
             plugin.getDataManager().queuePlayerDataSave(pd);

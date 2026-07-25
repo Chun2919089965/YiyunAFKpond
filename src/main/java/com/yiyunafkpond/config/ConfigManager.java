@@ -49,6 +49,8 @@ public class ConfigManager {
         
         // 加载配置
         config = YamlConfiguration.loadConfiguration(configFile);
+        // 多数运行时模块通过 JavaPlugin#getConfig() 读取配置，同步刷新 Bukkit 的配置缓存。
+        plugin.reloadConfig();
         
         // 只在调试模式下输出配置加载信息
         if (plugin.isDebugMode()) {

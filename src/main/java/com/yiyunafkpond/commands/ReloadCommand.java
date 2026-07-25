@@ -19,15 +19,12 @@ public class ReloadCommand implements SubCommand {
         plugin.sendPlayerMessage(sender, "&#B0E0E6正在重载YiyunAFKpond插件...");
         long startTime = System.currentTimeMillis();
         try {
-            plugin.getConfigManager().reloadConfig();
-            plugin.getSecurityManager().reload();
-            plugin.getUiManager().reload();
-            plugin.getPondManager().loadPonds();
-            plugin.getDataManager().loadAllPlayerData();
-            plugin.getRewardManager().restartAllRewardTasks();
-            plugin.rescanPlayersInPonds();
+            plugin.reloadPluginConfiguration();
             long endTime = System.currentTimeMillis();
             plugin.sendPlayerMessage(sender, "&#87CEEB插件重载成功！&#ADD8E6耗时: &#B0E0E6" + (endTime - startTime) + "ms");
+            if (plugin.getAuditLogger() != null) {
+                plugin.getAuditLogger().logConfigReload(sender);
+            }
         } catch (Exception e) {
             plugin.sendPlayerMessage(sender, "&#6CA6CD插件重载失败！请查看服务器控制台日志了解详情。");
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "插件重载失败", e);

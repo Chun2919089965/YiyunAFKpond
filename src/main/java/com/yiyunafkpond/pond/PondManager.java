@@ -299,12 +299,6 @@ public class PondManager {
     
     // 执行实际的保存操作
     private void performSave() {
-        // 检查ponds集合是否为空，避免保存空配置
-        if (ponds.isEmpty()) {
-            plugin.getLogger().warning("没有挂机池可保存，跳过保存操作");
-            return;
-        }
-        
         // 创建临时配置文件，确保保存失败时不会影响原文件
         FileConfiguration tempConfig = new YamlConfiguration();
         ConfigurationSection pondsSection = tempConfig.createSection("ponds");
@@ -492,6 +486,7 @@ public class PondManager {
         Pond pond = ponds.remove(id);
         if (pond != null) {
             removePondFromWorldMap(pond);
+            playersByPool.remove(id);
             return true;
         }
         return false;
@@ -571,6 +566,10 @@ public class PondManager {
         for (Set<UUID> uuids : playersByPool.values()) {
             uuids.remove(playerUuid);
         }
+    }
+
+    public void clearPlayerTracking() {
+        playersByPool.clear();
     }
 
     public int getPlayerCountInPond(String pondId) {

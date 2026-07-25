@@ -30,6 +30,7 @@ public class RemoveCommand implements SubCommand {
         String poolName = pond.getName();
         plugin.getRewardManager().stopPoolRewardTasks(pond);
         plugin.getPondManager().removePond(poolId);
+        plugin.rescanPlayersInPonds();
         plugin.sendPlayerMessage(sender, "&#87CEEB成功删除AFK池: &#B0E0E6" + poolName + " &#ADD8E6(" + poolId + ")");
         plugin.getPondManager().savePonds(true);
         plugin.getAuditLogger().logPoolDelete(sender, poolId);

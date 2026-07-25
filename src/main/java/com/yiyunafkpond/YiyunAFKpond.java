@@ -243,26 +243,43 @@ public class YiyunAFKpond extends JavaPlugin {
     }
 
     public void rescanPlayersInPonds() {
+        pondManager.clearPlayerTracking();
+        securityManager.clearIpIndex();
+
         for (Player player : getServer().getOnlinePlayers()) {
-            Pond pond = pondManager.getPondByLocation(player.getLocation());
-            if (pond == null || !pond.isEnabled()) continue;
-
-            if (!securityManager.canPlayerEnterPool(player, pond)) continue;
-
-            if (!securityManager.canPlayerEnterPoolByIp(player, pond)) continue;
-
             PlayerData playerData = dataManager.getOrCreatePlayerData(player);
             if (playerData == null) continue;
 
-            playerData.setCurrentPondId(pond.getId());
-            playerData.setAfk(true);
-            securityManager.onPlayerEnterPool(player, pond.getId());
-            pondManager.addPlayerToPool(pond.getId(), player.getUniqueId());
-            uiManager.registerPlayerForUpdate(player);
-            dataManager.queuePlayerDataSave(playerData);
+            boolean wasAfk = playerData.isAfk();
+            String previousPondId = playerData.getCurrentPondId();
+            Pond pond = pondManager.getPondByLocation(player.getLocation());
+            boolean canEnter = pond != null
+                    && securityManager.canPlayerEnterPool(player, pond)
+                    && securityManager.canPlayerEnterPoolByIp(player, pond);
 
-            debug(player.getName(), "重载后重新检测到玩家在挂机池: " + pond.getName());
+            if (canEnter) {
+                playerData.setCurrentPondId(pond.getId());
+                playerData.setAfk(true);
+                securityManager.onPlayerEnterPool(player, pond.getId());
+                pondManager.addPlayerToPool(pond.getId(), player.getUniqueId());
+                if (uiManager != null) uiManager.registerPlayerForUpdate(player);
+                debug(player.getName(), "重新检测到玩家在挂机池: " + pond.getName());
+            } else {
+                playerData.setCurrentPondId(null);
+                playerData.setAfk(false);
+                if (uiManager != null) uiManager.unregisterPlayerForUpdate(player);
+            }
+
+            if (wasAfk != playerData.isAfk()
+                    || !java.util.Objects.equals(previousPondId, playerData.getCurrentPondId())) {
+                dataManager.queuePlayerDataSave(playerData);
+            }
         }
+    }
+
+    public void reloadPluginConfiguration() {
+        configManager.reloadConfig();
+        onConfigReloaded();
     }
 
     public void onConfigReloaded() {
@@ -271,27 +288,29 @@ public class YiyunAFKpond extends JavaPlugin {
         debugMode = configManager.getConfig().getBoolean("core.debug", false);
         playerMessageActionbar = configManager.getConfig().getString("display.player-message-mode", "chat").equalsIgnoreCase("actionbar");
 
-        languageManager.reload();
-        pondManager.reloadPonds();
-
-        schedulerManager.shutdownAllSchedulers();
-
-        // 先重扫描池内玩家（填充 playersByPool），再启动奖励任务，避免任务启动时空窗
-        securityManager.clearIpIndex();
-        rescanPlayersInPonds();
-
-        schedulerManager.startAllSchedulers();
-
         if (rewardManager != null) {
-            rewardManager.restartAllRewardTasks();
+            rewardManager.stopAllRewardTasks();
         }
 
-        if (uiManager != null) uiManager.reload();
+        languageManager.reload();
+        securityManager.reload();
+        pondManager.reloadPonds();
+        schedulerManager.restartAllSchedulers();
+
+        if (uiManager != null) {
+            uiManager.reload();
+        }
 
         if (playerListener != null) playerListener.reloadTitleSettings();
 
         if (bStatsManager != null) {
             bStatsManager.reload();
+        }
+
+        // 先重建在线玩家追踪，再启动奖励任务，避免重载期间使用旧池或旧权限状态。
+        rescanPlayersInPonds();
+        if (rewardManager != null) {
+            rewardManager.startAllRewardTasks();
         }
 
         getLogger().info("新配置已成功应用!");

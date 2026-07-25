@@ -54,6 +54,15 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
             if (subCommand != null) {
                 // 根据子命令类型提供不同的补全
                 switch (subCommandName) {
+                    case "selection":
+                        if (args.length == 2) {
+                            for (String option : List.of("wand", "clear")) {
+                                if (option.startsWith(args[1].toLowerCase())) {
+                                    completions.add(option);
+                                }
+                            }
+                        }
+                        break;
                     case "set":
                         if (args.length == 2) {
                             // 补全池ID

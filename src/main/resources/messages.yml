@@ -93,10 +93,10 @@ stats:
 # 错误消息
 # ==========================================
 error:
-  unknown-command: "&#6CA6CD未知命令！使用 /yap help 查看帮助。"
+  unknown-command: "&#6CA6CD未知命令！使用 /yafk help 查看帮助。"
   no-permission: "&#6CA6CD你没有权限执行此命令！"
   player-must-be-online: "&#6CA6CD玩家必须在线！"
-  invalid-arguments: "&#6CA6CD无效的参数！使用 /yap help 查看帮助。"
+  invalid-arguments: "&#6CA6CD无效的参数！使用 /yafk help 查看帮助。"
   config-load-failed: "&#6CA6CD配置文件加载失败！"
   database-connection-failed: "&#6CA6CD数据库连接失败！"
   save-failed: "&#6CA6CD保存数据失败！"
@@ -109,8 +109,8 @@ help:
   title: "&#87CEEB========== &#B0E0E6YiyunAFKpond 帮助 &#87CEEB=========="
   page: "&#87CEEB页数: &#B0E0E6%page%/%total_pages%"
   command-format: "&#B0E0E6%command% &#ADD8E6- &#87CEEB%description%"
-  next-page: "&#87CEEB使用 /yap help %next_page% 查看下一页"
-  prev-page: "&#87CEEB使用 /yap help %prev_page% 查看上一页"
+  next-page: "&#87CEEB使用 /yafk help %next_page% 查看下一页"
+  prev-page: "&#87CEEB使用 /yafk help %prev_page% 查看上一页"
 
 # ==========================================
 # 时间格式

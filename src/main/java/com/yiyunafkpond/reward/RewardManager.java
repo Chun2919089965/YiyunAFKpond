@@ -99,6 +99,11 @@ public class RewardManager {
     }
 
     public void startPoolRewardTasks(Pond pond) {
+        if (pond == null || !pond.isEnabled()) {
+            if (pond != null) stopPoolRewardTasks(pond);
+            return;
+        }
+
         String poolId = pond.getId();
         plugin.debug("为挂机池 " + poolId + " 启动奖励任务");
 
@@ -431,9 +436,9 @@ public class RewardManager {
      * 2. 玩家是否拥有进入该池的权限
      */
     private boolean isEligibleForReward(Player player, Pond pond) {
-        if (!pond.isInPond(player.getLocation())) return false;
-        String requiredPermission = pond.getRequiredPermission();
-        return requiredPermission == null || player.hasPermission(requiredPermission);
+        return pond.isEnabled()
+                && pond.isInPond(player.getLocation())
+                && plugin.getSecurityManager().canPlayerEnterPool(player, pond);
     }
 
     private long calculateExperienceAmount(Pond pond) {

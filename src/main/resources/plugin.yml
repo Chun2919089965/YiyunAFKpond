@@ -82,6 +82,9 @@ permissions:
   yiyunafkpond.bypass.teleport:
     description: 绕过传送检测的权限
     default: op
+  yiyunafkpond.bypass.ip:
+    description: 绕过挂机池同 IP 限制的权限
+    default: op
   yiyunafkpond.pool.*:
     description: 进入所有挂机池的权限
     default: op

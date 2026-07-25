@@ -102,103 +102,103 @@
 ### 30 秒创建挂机池
 
 ```
-/yap selection             ← 获取选区工具
+/yafk selection             ← 获取选区工具
 左键点击第一个角              ← 设定起点
 右键点击对角                  ← 设定终点
-/yap create vip_pool VIP挂机池  ← 创建完成！
+/yafk create vip_pool VIP挂机池  ← 创建完成！
 ```
 
 ***
 
 ## 📋 命令一览
 
-> 主命令：`/yiyunafkpond`，别名：`/yafkpond`、`/yafk`、`/yap`
+> 主命令：`/yiyunafkpond`，别名：`/yafkpond`、`/yafk`
 
 ### 🔧 核心命令
 
 | 命令 | 说明 | 权限 |
 |------|------|------|
-| `/yap help` | 显示帮助信息 | `yiyunafkpond.user` |
-| `/yap reload` | 重载配置 | `yiyunafkpond.admin.reload` |
-| `/yap debug` | 切换调试模式 | `yiyunafkpond.admin.debug` |
-| `/yap perf stats` | 性能监控 | `yiyunafkpond.performance` |
+| `/yafk help` | 显示帮助信息 | `yiyunafkpond.user` |
+| `/yafk reload` | 重载配置 | `yiyunafkpond.admin.reload` |
+| `/yafk debug` | 切换调试模式 | `yiyunafkpond.admin.debug` |
+| `/yafk perf stats` | 性能监控 | `yiyunafkpond.performance` |
 
 ### 🎯 选区工具
 
 | 命令 | 说明 | 权限 |
 |------|------|------|
-| `/yap selection wand` | 获取选区工具 | `yiyunafkpond.admin.select` |
-| `/yap selection clear` | 清除当前选区 | `yiyunafkpond.admin.select` |
+| `/yafk selection wand` | 获取选区工具 | `yiyunafkpond.admin.select` |
+| `/yafk selection clear` | 清除当前选区 | `yiyunafkpond.admin.select` |
 
 ### 🏊 池管理
 
 | 命令 | 说明 | 权限 |
 |------|------|------|
-| `/yap create <ID> <名称>` | 创建挂机池 | `yiyunafkpond.admin.create` |
-| `/yap remove <ID>` | 删除挂机池 | `yiyunafkpond.admin.delete` |
-| `/yap list` | 列出所有挂机池 | `yiyunafkpond.admin.list` |
-| `/yap info <ID>` | 查看池详细信息 | `yiyunafkpond.admin.info` |
-| `/yap set <ID> <属性> <值>` | 设置池属性 | `yiyunafkpond.admin.edit` |
-| `/yap toggle <ID>` | 启用/禁用池 | `yiyunafkpond.admin.toggle` |
-| `/yap tp <ID>` | 传送到池中心 | `yiyunafkpond.admin.tp` |
+| `/yafk create <ID> <名称>` | 创建挂机池 | `yiyunafkpond.admin.create` |
+| `/yafk remove <ID>` | 删除挂机池 | `yiyunafkpond.admin.delete` |
+| `/yafk list` | 列出所有挂机池 | `yiyunafkpond.admin.list` |
+| `/yafk info <ID>` | 查看池详细信息 | `yiyunafkpond.admin.info` |
+| `/yafk set <ID> <属性> <值>` | 设置池属性 | `yiyunafkpond.admin.edit` |
+| `/yafk toggle <ID>` | 启用/禁用池 | `yiyunafkpond.admin.toggle` |
+| `/yafk tp <ID>` | 传送到池中心 | `yiyunafkpond.admin.tp` |
 
 ### 📊 统计与数据
 
 | 命令 | 说明 | 权限 |
 |------|------|------|
-| `/yap stats` | 全局统计 | `yiyunafkpond.admin.stats` |
-| `/yap stats <玩家>` | 玩家统计 | `yiyunafkpond.admin.stats` |
-| `/yap stats pool <ID>` | 池统计 | `yiyunafkpond.admin.stats` |
-| `/yap player <玩家>` | 查看玩家数据 | `yiyunafkpond.admin.player` |
-| `/yap reset <玩家>` | 重置玩家数据 | `yiyunafkpond.admin.reset` |
+| `/yafk stats` | 全局统计 | `yiyunafkpond.admin.stats` |
+| `/yafk stats <玩家>` | 玩家统计 | `yiyunafkpond.admin.stats` |
+| `/yafk stats pool <ID>` | 池统计 | `yiyunafkpond.admin.stats` |
+| `/yafk player <玩家>` | 查看玩家数据 | `yiyunafkpond.admin.player` |
+| `/yafk reset <玩家>` | 重置玩家数据 | `yiyunafkpond.admin.reset` |
 
-### `/yap set` 可用属性
+### `/yafk set` 可用属性
 
 #### ⚡ 经验相关
 
 | 属性 | 说明 | 示例 |
 |------|------|------|
-| `expInterval` | 发放间隔（秒） | `/yap set pool1 expInterval 5` |
-| `expRewardMode` | 奖励模式（random/fixed） | `/yap set pool1 expRewardMode fixed` |
-| `expRandomMin` | 随机最小值 | `/yap set pool1 expRandomMin 5` |
-| `expRandomMax` | 随机最大值 | `/yap set pool1 expRandomMax 20` |
-| `expFixedAmount` | 固定奖励值 | `/yap set pool1 expFixedAmount 10` |
-| `expMaxDaily` | 每日上限 | `/yap set pool1 expMaxDaily 2000` |
-| `expApplyMending` | 是否触发经验修补 | `/yap set pool1 expApplyMending true` |
-| `xpRate` | 经验倍率 | `/yap set pool1 xpRate 1.5` |
+| `expInterval` | 发放间隔（秒） | `/yafk set pool1 expInterval 5` |
+| `expRewardMode` | 奖励模式（random/fixed） | `/yafk set pool1 expRewardMode fixed` |
+| `expRandomMin` | 随机最小值 | `/yafk set pool1 expRandomMin 5` |
+| `expRandomMax` | 随机最大值 | `/yafk set pool1 expRandomMax 20` |
+| `expFixedAmount` | 固定奖励值 | `/yafk set pool1 expFixedAmount 10` |
+| `expMaxDaily` | 每日上限 | `/yafk set pool1 expMaxDaily 2000` |
+| `expApplyMending` | 是否触发经验修补 | `/yafk set pool1 expApplyMending true` |
+| `xpRate` | 经验倍率 | `/yafk set pool1 xpRate 1.5` |
 
 #### 💰 金币相关
 
 | 属性 | 说明 | 示例 |
 |------|------|------|
-| `moneyInterval` | 发放间隔（秒） | `/yap set pool1 moneyInterval 30` |
-| `moneyRewardMode` | 奖励模式（random/fixed） | `/yap set pool1 moneyRewardMode random` |
-| `moneyRandomMin` | 随机最小值 | `/yap set pool1 moneyRandomMin 5.0` |
-| `moneyRandomMax` | 随机最大值 | `/yap set pool1 moneyRandomMax 15.0` |
-| `moneyFixedAmount` | 固定奖励值 | `/yap set pool1 moneyFixedAmount 10.0` |
-| `moneyMaxDaily` | 每日上限 | `/yap set pool1 moneyMaxDaily 5000.0` |
-| `moneyRate` | 金币倍率 | `/yap set pool1 moneyRate 2.0` |
+| `moneyInterval` | 发放间隔（秒） | `/yafk set pool1 moneyInterval 30` |
+| `moneyRewardMode` | 奖励模式（random/fixed） | `/yafk set pool1 moneyRewardMode random` |
+| `moneyRandomMin` | 随机最小值 | `/yafk set pool1 moneyRandomMin 5.0` |
+| `moneyRandomMax` | 随机最大值 | `/yafk set pool1 moneyRandomMax 15.0` |
+| `moneyFixedAmount` | 固定奖励值 | `/yafk set pool1 moneyFixedAmount 10.0` |
+| `moneyMaxDaily` | 每日上限 | `/yafk set pool1 moneyMaxDaily 5000.0` |
+| `moneyRate` | 金币倍率 | `/yafk set pool1 moneyRate 2.0` |
 
 #### 💎 点券相关
 
 | 属性 | 说明 | 示例 |
 |------|------|------|
-| `pointInterval` | 发放间隔（秒） | `/yap set pool1 pointInterval 60` |
-| `pointRewardMode` | 奖励模式（random/fixed） | `/yap set pool1 pointRewardMode random` |
-| `pointRandomMin` | 随机最小值 | `/yap set pool1 pointRandomMin 1.0` |
-| `pointRandomMax` | 随机最大值 | `/yap set pool1 pointRandomMax 5.0` |
-| `pointFixedAmount` | 固定奖励值 | `/yap set pool1 pointFixedAmount 3.0` |
-| `pointMaxDaily` | 每日上限 | `/yap set pool1 pointMaxDaily 100.0` |
-| `pointRate` | 点券倍率 | `/yap set pool1 pointRate 1.0` |
+| `pointInterval` | 发放间隔（秒） | `/yafk set pool1 pointInterval 60` |
+| `pointRewardMode` | 奖励模式（random/fixed） | `/yafk set pool1 pointRewardMode random` |
+| `pointRandomMin` | 随机最小值 | `/yafk set pool1 pointRandomMin 1.0` |
+| `pointRandomMax` | 随机最大值 | `/yafk set pool1 pointRandomMax 5.0` |
+| `pointFixedAmount` | 固定奖励值 | `/yafk set pool1 pointFixedAmount 3.0` |
+| `pointMaxDaily` | 每日上限 | `/yafk set pool1 pointMaxDaily 100.0` |
+| `pointRate` | 点券倍率 | `/yafk set pool1 pointRate 1.0` |
 
 #### ⚙️ 其他
 
 | 属性 | 说明 | 示例 |
 |------|------|------|
-| `requiredPermission` | 进入权限（null 为无限制） | `/yap set pool1 requiredPermission yiyunafkpond.pool.vip` |
-| `enabled` | 是否启用 | `/yap set pool1 enabled true` |
-| `enterMessage` | 进入消息 | `/yap set pool1 enterMessage &a欢迎!` |
-| `leaveMessage` | 离开消息 | `/yap set pool1 leaveMessage &c再见!` |
+| `requiredPermission` | 进入权限（null 为无限制） | `/yafk set pool1 requiredPermission yiyunafkpond.pool.vip` |
+| `enabled` | 是否启用 | `/yafk set pool1 enabled true` |
+| `enterMessage` | 进入消息 | `/yafk set pool1 enterMessage &a欢迎!` |
+| `leaveMessage` | 离开消息 | `/yafk set pool1 leaveMessage &c再见!` |
 
 ***
 
@@ -286,6 +286,8 @@ display:
     enabled: true
 
 security:
+  enter-permission-check:
+    enabled: false             # false 时仅检查池自身 requiredPermission
   teleport-intercept:
     enabled: true
 ```
@@ -397,6 +399,7 @@ YiyunAFKpond
 | `yiyunafkpond.admin.reset`     | 重置玩家数据   | OP  |
 | `yiyunafkpond.admin.debug`     | 调试模式     | OP  |
 | `yiyunafkpond.bypass.teleport` | 绕过传送拦截   | OP  |
+| `yiyunafkpond.bypass.ip`       | 绕过同 IP 限制 | OP  |
 | `yiyunafkpond.pool.*`          | 进入所有池    | OP  |
 | `yiyunafkpond.reward.money`    | 获得金币奖励   | 所有人 |
 | `yiyunafkpond.reward.point`    | 获得点券奖励   | 所有人 |

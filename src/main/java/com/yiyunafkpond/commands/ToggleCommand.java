@@ -29,7 +29,15 @@ public class ToggleCommand implements SubCommand {
         String status = pond.isEnabled() ? "&#87CEEB启用" : "&#6CA6CD禁用";
         plugin.sendPlayerMessage(sender, "&#87CEEB成功将挂机池 &#B0E0E6" + pond.getName() + " &#ADD8E6[" + status + "&#ADD8E6]");
         plugin.getPondManager().savePonds(true);
-        plugin.getRewardManager().startPoolRewardTasks(pond);
+        if (pond.isEnabled()) {
+            plugin.getRewardManager().startPoolRewardTasks(pond);
+        } else {
+            plugin.getRewardManager().stopPoolRewardTasks(pond);
+        }
+        plugin.rescanPlayersInPonds();
+        if (plugin.getAuditLogger() != null) {
+            plugin.getAuditLogger().logPoolToggle(sender, pondId, pond.isEnabled());
+        }
         return true;
     }
 }

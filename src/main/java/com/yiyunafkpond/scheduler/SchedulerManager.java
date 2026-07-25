@@ -27,17 +27,23 @@ public class SchedulerManager {
     }
 
     public void startAllSchedulers() {
-        startDailyResetTask();
+        stopDailyResetTask();
+        if (plugin.getConfig().getBoolean("reset.enabled", true)) {
+            startDailyResetTask();
+        }
 
         if (plugin.isDebugMode()) {
             plugin.getLogger().info("所有调度任务已启动!");
         }
     }
 
+    /** 仅重启由本管理器直接持有的任务，不影响数据保存、奖励和 UI 任务。 */
+    public void restartAllSchedulers() {
+        startAllSchedulers();
+    }
+
     public void shutdownAllSchedulers() {
-        if (dailyResetTask != null) {
-            dailyResetTask.cancel();
-        }
+        stopDailyResetTask();
 
         adapter.cancelAllTasks();
 
@@ -66,6 +72,13 @@ public class SchedulerManager {
 
         if (plugin.isDebugMode()) {
             plugin.getLogger().info("每日重置任务已启动，将在 " + (delayTicks / 20 / 60) + " 分钟后执行首次重置");
+        }
+    }
+
+    private void stopDailyResetTask() {
+        if (dailyResetTask != null) {
+            dailyResetTask.cancel();
+            dailyResetTask = null;
         }
     }
 

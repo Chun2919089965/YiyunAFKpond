@@ -84,6 +84,9 @@ display:
 
 # 安全设置
 security:
+  enter-permission-check:
+    # 开启后，无 requiredPermission 的池需要 yiyunafkpond.pool.<池ID> 或 pool.*
+    enabled: false
   teleport-intercept:
     enabled: true      # 是否拦截传送到挂机池区域
     message: "&#6CA6CD不能直接传送到挂机池区域！"

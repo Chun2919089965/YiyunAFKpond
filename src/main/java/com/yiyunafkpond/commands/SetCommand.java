@@ -186,7 +186,15 @@ public class SetCommand implements SubCommand {
         plugin.sendPlayerMessage(sender, "&#87CEEB成功设置池 &#B0E0E6" + pond.getName() + " &#87CEEB的属性 &#B0E0E6" + property + "&#87CEEB: &#6CA6CD" + oldValue + " &#ADD8E6→ &#87CEEB" + value);
 
         if (RESTART_PROPERTIES.contains(property)) {
-            plugin.getRewardManager().startPoolRewardTasks(pond);
+            if (pond.isEnabled()) {
+                plugin.getRewardManager().startPoolRewardTasks(pond);
+            } else {
+                plugin.getRewardManager().stopPoolRewardTasks(pond);
+            }
+        }
+
+        if (property.equals("enabled")) {
+            plugin.rescanPlayersInPonds();
         }
 
         return true;
