@@ -28,6 +28,7 @@ public class PlayerData {
     private final Map<String, Double> pondTodayMoney;
     private final Map<String, Integer> pondTodayPoint;
     private final Map<String, Long> pondTodayAfkTime;
+    private final Map<String, Integer> pondTodayItemRolls;
     private Date lastReset;
 
     public PlayerData(UUID uuid, String name) {
@@ -49,6 +50,7 @@ public class PlayerData {
         this.pondTodayMoney = new ConcurrentHashMap<>();
         this.pondTodayPoint = new ConcurrentHashMap<>();
         this.pondTodayAfkTime = new ConcurrentHashMap<>();
+        this.pondTodayItemRolls = new ConcurrentHashMap<>();
         this.lastReset = new Date();
     }
 
@@ -93,6 +95,20 @@ public class PlayerData {
     public synchronized void setPoolTodayAfkTime(String pondId, long time) { this.pondTodayAfkTime.put(pondId, time); }
     public synchronized void removePoolTodayAfkTime(String pondId) { this.pondTodayAfkTime.remove(pondId); }
     public synchronized void clearPoolTodayAfkTime() { this.pondTodayAfkTime.clear(); }
+
+    public synchronized int getDailyItemRollsByPool(String pondId) {
+        return pondTodayItemRolls.getOrDefault(pondId, 0);
+    }
+    public synchronized void addTodayItemRoll(String pondId) {
+        pondTodayItemRolls.merge(pondId, 1, Integer::sum);
+    }
+    public synchronized void setPoolTodayItemRolls(String pondId, int rolls) {
+        if (rolls <= 0) pondTodayItemRolls.remove(pondId);
+        else pondTodayItemRolls.put(pondId, rolls);
+    }
+    public Map<String, Integer> getPoolTodayItemRolls() { return Map.copyOf(pondTodayItemRolls); }
+    public synchronized void removePoolTodayItemRolls(String pondId) { pondTodayItemRolls.remove(pondId); }
+    public synchronized void clearPoolTodayItemRolls() { pondTodayItemRolls.clear(); }
 
     public synchronized long getLastRewardTime() { return lastRewardTime; }
     public synchronized void setLastRewardTime(long lastRewardTime) { this.lastRewardTime = lastRewardTime; }
@@ -168,6 +184,7 @@ public class PlayerData {
         this.pondTodayMoney.clear();
         this.pondTodayPoint.clear();
         this.pondTodayAfkTime.clear();
+        this.pondTodayItemRolls.clear();
         this.lastReset = new Date();
     }
 

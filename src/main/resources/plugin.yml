@@ -40,6 +40,7 @@ permissions:
       yiyunafkpond.admin.player: true
       yiyunafkpond.admin.stats: true
       yiyunafkpond.admin.reset: true
+      yiyunafkpond.admin.item: true
   yiyunafkpond.admin.create:
     description: 创建挂机池的权限
     default: op
@@ -79,6 +80,9 @@ permissions:
   yiyunafkpond.admin.reset:
     description: 重置玩家数据的权限
     default: op
+  yiyunafkpond.admin.item:
+    description: 管理挂机池物品奖励的权限
+    default: op
   yiyunafkpond.bypass.teleport:
     description: 绕过传送检测的权限
     default: op
@@ -97,6 +101,9 @@ permissions:
   yiyunafkpond.reward.commands:
     description: 执行自定义指令奖励的权限
     default: true
+  yiyunafkpond.reward.item:
+    description: 获得物品奖励的权限
+    default: true
   yiyunafkpond.performance:
     description: 查看性能监控的权限
     default: op
@@ -105,8 +112,3 @@ softdepend:
   - Vault
   - PlaceholderAPI
   - PlayerPoints
-
-libraries:
-  - com.zaxxer:HikariCP:5.1.0
-  - mysql:mysql-connector-java:8.0.33
-  - org.xerial:sqlite-jdbc:3.43.2.1

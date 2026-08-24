@@ -45,6 +45,7 @@ public class ResetCommand implements SubCommand {
         playerData.clearPoolTodayExp();
         playerData.clearPoolTodayMoney();
         playerData.clearPoolTodayPoint();
+        playerData.clearPoolTodayItemRolls();
         playerData.clearPondAfkTimes();
         plugin.getDataManager().savePlayerData(playerData);
         plugin.sendPlayerMessage(sender, "&#87CEEB成功重置玩家 &#B0E0E6" + playerName + " &#ADD8E6的数据!");

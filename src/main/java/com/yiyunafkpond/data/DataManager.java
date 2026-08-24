@@ -91,11 +91,10 @@ public class DataManager {
     }
     
     private void initSQLite() throws Exception {
-        Class.forName("org.sqlite.JDBC");
         this.dbPrefix = sanitizeDbPrefix(plugin.getConfigManager().getConfig().getString("storage.prefix", "yiyunafkpond_"));
         sqliteFile = new File(plugin.getDataFolder(), "data.db");
         String url = "jdbc:sqlite:" + sqliteFile.getAbsolutePath();
-        connection = DriverManager.getConnection(url);
+        connection = LibraryLoader.connect("org.sqlite.JDBC", url, new Properties());
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("PRAGMA journal_mode=WAL");
             stmt.executeUpdate("PRAGMA busy_timeout=5000");
@@ -110,8 +109,6 @@ public class DataManager {
     private void initMySQL() throws Exception {
         FileConfiguration config = plugin.getConfigManager().getConfig();
         this.dbPrefix = sanitizeDbPrefix(config.getString("storage.prefix", "yiyunafkpond_"));
-        
-        Class.forName("com.mysql.cj.jdbc.Driver");
         
         String host = config.getString("storage.mysql.host", "localhost");
         int port = config.getInt("storage.mysql.port", 3306);
@@ -145,6 +142,7 @@ public class DataManager {
                 Method setJdbcUrl = hikariConfigClass.getMethod("setJdbcUrl", String.class);
                 Method setUsername = hikariConfigClass.getMethod("setUsername", String.class);
                 Method setPassword = hikariConfigClass.getMethod("setPassword", String.class);
+                Method setDriverClassName = hikariConfigClass.getMethod("setDriverClassName", String.class);
                 Method setPoolName = hikariConfigClass.getMethod("setPoolName", String.class);
                 Method setMaximumPoolSize = hikariConfigClass.getMethod("setMaximumPoolSize", int.class);
                 Method setMinimumIdle = hikariConfigClass.getMethod("setMinimumIdle", int.class);
@@ -155,6 +153,7 @@ public class DataManager {
                 setJdbcUrl.invoke(hikariConfig, jdbcUrl);
                 setUsername.invoke(hikariConfig, username);
                 setPassword.invoke(hikariConfig, password);
+                setDriverClassName.invoke(hikariConfig, "com.mysql.cj.jdbc.Driver");
                 setPoolName.invoke(hikariConfig, "YiyunAFKpond-Pool");
                 setMaximumPoolSize.invoke(hikariConfig, config.getInt("storage.mysql.pool-size", 10));
                 setMinimumIdle.invoke(hikariConfig, config.getInt("storage.mysql.pool-min-idle", 2));
@@ -163,20 +162,26 @@ public class DataManager {
                 setMaxLifetime.invoke(hikariConfig, config.getLong("storage.mysql.max-lifetime", 1800000L));
                 
                 Constructor<?> dataSourceConstructor = hikariDataSourceClass.getConstructor(hikariConfigClass);
-                this.dataSource = dataSourceConstructor.newInstance(hikariConfig);
+                ClassLoader originalContextLoader = Thread.currentThread().getContextClassLoader();
+                try {
+                    Thread.currentThread().setContextClassLoader(classLoader);
+                    this.dataSource = dataSourceConstructor.newInstance(hikariConfig);
+                } finally {
+                    Thread.currentThread().setContextClassLoader(originalContextLoader);
+                }
                 
                 if (plugin.isDebugMode()) {
                     logger.info("成功初始化 MySQL 数据库（使用 HikariCP 连接池）");
                 }
             } catch (Exception e) {
                 logger.warning("HikariCP 反射加载失败，回退到传统连接: " + e.getMessage());
-                connection = DriverManager.getConnection(jdbcUrl, username, password);
+                connection = connectMySQL(jdbcUrl, username, password);
             }
         } else {
             if (useConnectionPool && !hikariAvailable) {
                 logger.warning("HikariCP 不可用，使用传统连接方式");
             }
-            connection = DriverManager.getConnection(jdbcUrl, username, password);
+            connection = connectMySQL(jdbcUrl, username, password);
         }
         
         Connection initConn = null;
@@ -189,6 +194,13 @@ public class DataManager {
                 try { initConn.close(); } catch (SQLException ignored) {}
             }
         }
+    }
+
+    private Connection connectMySQL(String jdbcUrl, String username, String password) throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", username);
+        properties.setProperty("password", password);
+        return LibraryLoader.connect("com.mysql.cj.jdbc.Driver", jdbcUrl, properties);
     }
     
     private Connection getConnection() throws SQLException {
@@ -257,6 +269,15 @@ public class DataManager {
                     + "PRIMARY KEY (`uuid`, `pond_id`), "
                     + "FOREIGN KEY (`uuid`) REFERENCES `" + dbPrefix + "player`(`uuid`) ON DELETE CASCADE"
                     + ")");
+
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS `" + dbPrefix + "player_item_daily` ("
+                    + "`uuid` CHAR(36) NOT NULL, "
+                    + "`pond_id` VARCHAR(64) NOT NULL, "
+                    + "`daily_date` DATE NOT NULL, "
+                    + "`successful_rolls` INT NOT NULL DEFAULT 0, "
+                    + "PRIMARY KEY (`uuid`, `pond_id`, `daily_date`), "
+                    + "FOREIGN KEY (`uuid`) REFERENCES `" + dbPrefix + "player`(`uuid`) ON DELETE CASCADE"
+                    + ")");
             
             createIndexes(conn);
         }
@@ -270,12 +291,14 @@ public class DataManager {
             createIndexIfNotExists(conn, checkIndex, dbPrefix + "player_daily", dbPrefix + "idx_daily_date", "daily_date");
             createIndexIfNotExists(conn, checkIndex, dbPrefix + "player_daily", dbPrefix + "idx_daily_pond", "pond_id");
             createIndexIfNotExists(conn, checkIndex, dbPrefix + "player_pond_stats", dbPrefix + "idx_stats_pond", "pond_id");
+            createIndexIfNotExists(conn, checkIndex, dbPrefix + "player_item_daily", dbPrefix + "idx_item_daily_date", "daily_date");
         } else {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE INDEX IF NOT EXISTS `" + dbPrefix + "idx_player_name` ON `" + dbPrefix + "player` (`name`)");
                 stmt.executeUpdate("CREATE INDEX IF NOT EXISTS `" + dbPrefix + "idx_daily_date` ON `" + dbPrefix + "player_daily` (`daily_date`)");
                 stmt.executeUpdate("CREATE INDEX IF NOT EXISTS `" + dbPrefix + "idx_daily_pond` ON `" + dbPrefix + "player_daily` (`pond_id`)");
                 stmt.executeUpdate("CREATE INDEX IF NOT EXISTS `" + dbPrefix + "idx_stats_pond` ON `" + dbPrefix + "player_pond_stats` (`pond_id`)");
+                stmt.executeUpdate("CREATE INDEX IF NOT EXISTS `" + dbPrefix + "idx_item_daily_date` ON `" + dbPrefix + "player_item_daily` (`daily_date`)");
             }
         }
     }
@@ -345,6 +368,12 @@ public class DataManager {
             Map<String, Object> map = config.getConfigurationSection("pondTodayAfkTime").getValues(false);
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 playerData.setPoolTodayAfkTime(entry.getKey(), Long.parseLong(entry.getValue().toString()));
+            }
+        }
+        if (config.contains("pondTodayItemRolls")) {
+            Map<String, Object> map = config.getConfigurationSection("pondTodayItemRolls").getValues(false);
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                playerData.setPoolTodayItemRolls(entry.getKey(), Integer.parseInt(entry.getValue().toString()));
             }
         }
         if (config.contains("lastReset")) {
@@ -431,6 +460,20 @@ public class DataManager {
                         if (afkTime > 0) pd.setPondAfkTime(pondId, afkTime);
                     }
                 }
+
+                try (PreparedStatement pstmt = conn.prepareStatement(
+                        "SELECT uuid, pond_id, successful_rolls FROM `" + dbPrefix
+                                + "player_item_daily` WHERE daily_date = ?")) {
+                    pstmt.setDate(1, today);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            PlayerData pd = loaded.get(UUID.fromString(rs.getString("uuid")));
+                            if (pd != null) {
+                                pd.setPoolTodayItemRolls(rs.getString("pond_id"), rs.getInt("successful_rolls"));
+                            }
+                        }
+                    }
+                }
             }
             
             for (Map.Entry<UUID, PlayerData> entry : loaded.entrySet()) {
@@ -502,6 +545,7 @@ public class DataManager {
         config.set("pondTodayMoney", pd.getPoolTodayMoney());
         config.set("pondTodayPoint", pd.getPoolTodayPoint());
         config.set("pondTodayAfkTime", pd.getPoolTodayAfkTime());
+        config.set("pondTodayItemRolls", pd.getPoolTodayItemRolls());
         config.set("lastReset", pd.getLastReset().getTime());
         config.set("pondAfkTimes", pd.getPondAfkTimes());
         try {
@@ -529,6 +573,7 @@ public class DataManager {
             savePlayerBase(conn, data);
             savePlayerDaily(conn, data);
             savePlayerPondStats(conn, data);
+            savePlayerItemDaily(conn, data);
             return null;
         });
     }
@@ -604,6 +649,35 @@ public class DataManager {
                 pstmt.setString(1, data.getUuid().toString());
                 pstmt.setString(2, entry.getKey());
                 pstmt.setLong(3, entry.getValue());
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        }
+    }
+
+    private void savePlayerItemDaily(Connection conn, PlayerData data) throws SQLException {
+        String mysqlUpsert = "INSERT INTO `" + dbPrefix
+                + "player_item_daily` (uuid, pond_id, daily_date, successful_rolls) "
+                + "VALUES (?, ?, ?, ?) AS new ON DUPLICATE KEY UPDATE successful_rolls=new.successful_rolls";
+        String sqliteUpsert = "INSERT INTO `" + dbPrefix
+                + "player_item_daily` (uuid, pond_id, daily_date, successful_rolls) "
+                + "VALUES (?, ?, ?, ?) ON CONFLICT(uuid, pond_id, daily_date) "
+                + "DO UPDATE SET successful_rolls=excluded.successful_rolls";
+
+        java.sql.Date today = java.sql.Date.valueOf(LocalDate.now());
+        try (PreparedStatement delete = conn.prepareStatement(
+                "DELETE FROM `" + dbPrefix + "player_item_daily` WHERE uuid = ? AND daily_date = ?")) {
+            delete.setString(1, data.getUuid().toString());
+            delete.setDate(2, today);
+            delete.executeUpdate();
+        }
+
+        try (PreparedStatement pstmt = conn.prepareStatement(storageType.equals("sqlite") ? sqliteUpsert : mysqlUpsert)) {
+            for (Map.Entry<String, Integer> entry : data.getPoolTodayItemRolls().entrySet()) {
+                pstmt.setString(1, data.getUuid().toString());
+                pstmt.setString(2, entry.getKey());
+                pstmt.setDate(3, today);
+                pstmt.setInt(4, entry.getValue());
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
@@ -697,6 +771,18 @@ public class DataManager {
                         String pondId = rs.getString("pond_id");
                         long afkTime = rs.getLong("total_afk_time");
                         if (afkTime > 0) pd.setPondAfkTime(pondId, afkTime);
+                    }
+                }
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT pond_id, successful_rolls FROM `" + dbPrefix
+                            + "player_item_daily` WHERE uuid = ? AND daily_date = ?")) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setDate(2, today);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        pd.setPoolTodayItemRolls(rs.getString("pond_id"), rs.getInt("successful_rolls"));
                     }
                 }
             }
@@ -798,6 +884,7 @@ public class DataManager {
                             savePlayerBase(conn, pd);
                             savePlayerDaily(conn, pd);
                             savePlayerPondStats(conn, pd);
+                            savePlayerItemDaily(conn, pd);
                             savedCount++;
                         } catch (Exception e) {
                             logger.warning("批量保存玩家 " + pd.getName() + " 数据失败: " + e.getMessage());
@@ -861,6 +948,15 @@ public class DataManager {
                 int deleted = pstmt.executeUpdate();
                 if (deleted > 0) {
                     logger.info("已清理 " + deleted + " 条超过 " + DAILY_DATA_RETENTION_DAYS + " 天的过期每日数据（截止日期: " + cutoffDate + "）");
+                }
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "DELETE FROM `" + dbPrefix + "player_item_daily` WHERE daily_date < ?")) {
+                pstmt.setDate(1, cutoffSqlDate);
+                int deleted = pstmt.executeUpdate();
+                if (deleted > 0) {
+                    logger.info("已清理 " + deleted + " 条过期物品奖励每日数据");
                 }
             }
             
@@ -965,6 +1061,7 @@ public class DataManager {
                             savePlayerBase(conn, pd);
                             savePlayerDaily(conn, pd);
                             savePlayerPondStats(conn, pd);
+                            savePlayerItemDaily(conn, pd);
                             savedUuids.add(pd.getUuid());
                         } catch (Exception e) {
                             logger.warning("保存玩家 " + pd.getName() + " 数据失败: " + e.getMessage());

@@ -2,12 +2,23 @@ package com.yiyunafkpond.pond;
 
 import com.yiyunafkpond.YiyunAFKpond;
 import com.yiyunafkpond.data.PlayerData;
+import com.yiyunafkpond.reward.item.ItemRewardEntry;
+import com.yiyunafkpond.reward.item.ItemRewardSettings;
+import com.yiyunafkpond.util.ColorUtil;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,10 +32,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Locale;
 
 
 
 public class PondManager {
+    private static final LegacyComponentSerializer LEGACY_AMPERSAND =
+            LegacyComponentSerializer.builder().character('&').hexColors().build();
     private final YiyunAFKpond plugin;
     private final Map<String, Pond> ponds;
     private final Map<String, List<Pond>> pondsByWorld;
@@ -248,6 +262,8 @@ public class PondManager {
             pond.setPointRate(pondSection.getDouble("pointRate", 1.0));
             pond.setPointRewardMessage(pondSection.getString("pointRewardMessage", pond.getPointRewardMessage()));
             pond.setPointLimitMessage(pondSection.getString("pointLimitMessage", pond.getPointLimitMessage()));
+
+            loadItemRewardSettings(pond, pondSection.getConfigurationSection("itemReward"));
             
             // 加载命令相关属性
             if (pondSection.contains("commands")) {
@@ -384,6 +400,8 @@ public class PondManager {
         pondSection.set("pointRate", pond.getPointRate());
         pondSection.set("pointRewardMessage", pond.getPointRewardMessage());
         pondSection.set("pointLimitMessage", pond.getPointLimitMessage());
+
+        saveItemRewardSettings(pond, pondSection);
         
         // 保存命令相关属性
         pondSection.set("commands", pond.getCommands());
@@ -406,6 +424,188 @@ public class PondManager {
             for (Map.Entry<String, Double> entry : pond.getCustomRewards().entrySet()) {
                 customRewardsSection.set(entry.getKey(), entry.getValue());
             }
+        }
+    }
+
+    private void loadItemRewardSettings(Pond pond, ConfigurationSection section) {
+        if (section == null) return;
+
+        ItemRewardSettings settings = pond.getItemRewardSettings();
+        int schemaVersion = section.getInt("schemaVersion", ItemRewardSettings.SCHEMA_VERSION);
+        if (schemaVersion != ItemRewardSettings.SCHEMA_VERSION) {
+            plugin.getLogger().warning("挂机池 " + pond.getId() + " 的 itemReward.schemaVersion="
+                    + schemaVersion + "，当前仅支持版本 " + ItemRewardSettings.SCHEMA_VERSION
+                    + "；将按当前版本尽力读取已知字段");
+        }
+        String selectionMode = section.getString("selection.mode", "weighted");
+        if (!"weighted".equalsIgnoreCase(selectionMode)) {
+            plugin.getLogger().warning("挂机池 " + pond.getId() + " 的 itemReward.selection.mode="
+                    + selectionMode + " 不受支持，已使用 weighted");
+        }
+        settings.setEnabled(section.getBoolean("enabled", false));
+        setItemSetting(pond, "interval", () -> settings.setIntervalSeconds(section.getLong("interval", 60L)));
+        setItemSetting(pond, "selection.rolls", () -> settings.setRolls(section.getInt("selection.rolls", 1)));
+        setItemSetting(pond, "selection.chance", () -> settings.setChance(section.getDouble("selection.chance", 100.0)));
+        setItemSetting(pond, "maxSuccessfulRollsDaily", () -> settings.setMaxSuccessfulRollsDaily(
+                section.getInt("maxSuccessfulRollsDaily", 0)));
+        String overflow = section.getString("overflow", "skip");
+        try {
+            settings.setOverflowPolicy(ItemRewardSettings.OverflowPolicy.valueOf(
+                    overflow.trim().toUpperCase(Locale.ROOT)));
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("挂机池 " + pond.getId() + " 的 itemReward.overflow="
+                    + overflow + " 无效，已使用 skip");
+            settings.setOverflowPolicy(ItemRewardSettings.OverflowPolicy.SKIP);
+        }
+
+        ConfigurationSection entriesSection = section.getConfigurationSection("entries");
+        if (entriesSection == null) return;
+        for (String entryId : entriesSection.getKeys(false)) {
+            ConfigurationSection entrySection = entriesSection.getConfigurationSection(entryId);
+            if (entrySection == null) continue;
+            try {
+                ItemRewardEntry entry = loadItemRewardEntry(entryId, entrySection);
+                settings.putEntry(entry);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("已跳过无效物品奖励 ponds." + pond.getId()
+                        + ".itemReward.entries." + entryId + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private ItemRewardEntry loadItemRewardEntry(String entryId, ConfigurationSection section) {
+        ConfigurationSection source = section.getConfigurationSection("source");
+        if (source == null) throw new IllegalArgumentException("缺少 source 配置");
+
+        String typeName = source.getString("type", "minecraft").trim().toUpperCase(Locale.ROOT);
+        ItemRewardEntry.SourceType sourceType;
+        try {
+            sourceType = ItemRewardEntry.SourceType.valueOf(typeName);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("不支持的 source.type: " + typeName);
+        }
+
+        ItemStack template;
+        if (sourceType == ItemRewardEntry.SourceType.CAPTURED) {
+            template = source.getItemStack("item");
+            if (template == null || template.getType().isAir()) {
+                throw new IllegalArgumentException("captured 来源缺少有效的 source.item");
+            }
+        } else {
+            String materialName = source.getString("material");
+            Material material = materialName == null ? null : Material.matchMaterial(materialName);
+            if (material == null || material.isAir()) {
+                throw new IllegalArgumentException("无效的 material: " + materialName);
+            }
+            template = new ItemStack(material);
+            applySimpleItemMeta(template, section.getConfigurationSection("meta"));
+        }
+
+        return new ItemRewardEntry(entryId, sourceType,
+                section.getBoolean("enabled", true),
+                section.getDouble("weight", 1.0),
+                section.getInt("amount.min", 1),
+                section.getInt("amount.max", 1),
+                template);
+    }
+
+    private void applySimpleItemMeta(ItemStack item, ConfigurationSection section) {
+        if (section == null) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        if (section.isString("displayName")) {
+            meta.displayName(ColorUtil.parseToComponent(section.getString("displayName")));
+        }
+        List<String> loreLines = section.getStringList("lore");
+        if (!loreLines.isEmpty()) {
+            meta.lore(loreLines.stream().map(ColorUtil::parseToComponent).toList());
+        }
+        meta.setUnbreakable(section.getBoolean("unbreakable", false));
+        if (section.contains("customModelData")) {
+            meta.setCustomModelData(section.getInt("customModelData"));
+        }
+
+        ConfigurationSection enchantments = section.getConfigurationSection("enchantments");
+        if (enchantments != null) {
+            for (String enchantmentName : enchantments.getKeys(false)) {
+                NamespacedKey key = NamespacedKey.fromString(
+                        enchantmentName.contains(":") ? enchantmentName : "minecraft:" + enchantmentName.toLowerCase(Locale.ROOT));
+                Enchantment enchantment = key == null ? null : Enchantment.getByKey(key);
+                if (enchantment == null) {
+                    plugin.getLogger().warning("未知物品附魔: " + enchantmentName);
+                    continue;
+                }
+                meta.addEnchant(enchantment, enchantments.getInt(enchantmentName), true);
+            }
+        }
+        for (String flagName : section.getStringList("itemFlags")) {
+            try {
+                meta.addItemFlags(ItemFlag.valueOf(flagName.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("未知物品标记: " + flagName);
+            }
+        }
+        item.setItemMeta(meta);
+    }
+
+    private void saveItemRewardSettings(Pond pond, ConfigurationSection pondSection) {
+        ItemRewardSettings settings = pond.getItemRewardSettings();
+        ConfigurationSection section = pondSection.createSection("itemReward");
+        section.set("schemaVersion", ItemRewardSettings.SCHEMA_VERSION);
+        section.set("enabled", settings.isEnabled());
+        section.set("interval", settings.getIntervalSeconds());
+        section.set("selection.mode", "weighted");
+        section.set("selection.rolls", settings.getRolls());
+        section.set("selection.chance", settings.getChance());
+        section.set("maxSuccessfulRollsDaily", settings.getMaxSuccessfulRollsDaily());
+        section.set("overflow", settings.getOverflowPolicy().name().toLowerCase(Locale.ROOT));
+
+        ConfigurationSection entriesSection = section.createSection("entries");
+        for (ItemRewardEntry entry : settings.getEntries()) {
+            ConfigurationSection entrySection = entriesSection.createSection(entry.getId());
+            entrySection.set("enabled", entry.isEnabled());
+            entrySection.set("weight", entry.getWeight());
+            entrySection.set("amount.min", entry.getMinAmount());
+            entrySection.set("amount.max", entry.getMaxAmount());
+            entrySection.set("source.type", entry.getSourceType().name().toLowerCase(Locale.ROOT));
+
+            ItemStack template = entry.getTemplate();
+            if (entry.getSourceType() == ItemRewardEntry.SourceType.CAPTURED) {
+                entrySection.set("source.item", template);
+            } else {
+                entrySection.set("source.material", template.getType().name());
+                saveSimpleItemMeta(template, entrySection);
+            }
+        }
+    }
+
+    private void saveSimpleItemMeta(ItemStack item, ConfigurationSection entrySection) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !item.hasItemMeta()) return;
+        ConfigurationSection section = entrySection.createSection("meta");
+        Component displayName = meta.displayName();
+        if (displayName != null) section.set("displayName", LEGACY_AMPERSAND.serialize(displayName));
+        List<Component> lore = meta.lore();
+        if (lore != null && !lore.isEmpty()) {
+            section.set("lore", lore.stream().map(LEGACY_AMPERSAND::serialize).toList());
+        }
+        if (meta.isUnbreakable()) section.set("unbreakable", true);
+        if (meta.hasCustomModelData()) section.set("customModelData", meta.getCustomModelData());
+        for (Map.Entry<Enchantment, Integer> enchantment : meta.getEnchants().entrySet()) {
+            section.set("enchantments." + enchantment.getKey().getKey().toString(), enchantment.getValue());
+        }
+        if (!meta.getItemFlags().isEmpty()) {
+            section.set("itemFlags", meta.getItemFlags().stream().map(ItemFlag::name).toList());
+        }
+    }
+
+    private void setItemSetting(Pond pond, String path, Runnable setter) {
+        try {
+            setter.run();
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("挂机池 " + pond.getId() + " 的 itemReward." + path
+                    + " 无效，已使用默认值: " + e.getMessage());
         }
     }
     

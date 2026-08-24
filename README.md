@@ -2,7 +2,7 @@
 
 **轻量 · 高性能 · 全功能新一代挂机池插件**
 
-为 Minecraft 服务器打造的新一代挂机奖励系统 —— 玩家步入指定区域即可自动获取经验、金币、点券等奖励，零操作、零负担。
+为 Minecraft 服务器打造的新一代挂机奖励系统 —— 玩家步入指定区域即可自动获取经验、金币、点券、物品等奖励，零操作、零负担。
 
 ***
 
@@ -11,7 +11,7 @@
 | <br />   | 传统挂机插件     | YiyunAFKpond                                 |
 | -------- | ---------- | -------------------------------------------- |
 | 区域创建     | 手写坐标，反复试错  | 🪄 **选区工具**，左键右键即可框定                         |
-| 奖励类型     | 仅经验/金币     | 🎁 **经验 + 金币 + 点券 + 自定义命令**                  |
+| 奖励类型     | 仅经验/金币     | 🎁 **经验 + 金币 + 点券 + 物品 + 自定义命令**             |
 | 奖励模式     | 固定数值       | 🎲 **随机 / 固定** 双模式，可设倍率                      |
 | 进度显示     | 无或简陋       | 📊 **BossBar + ActionBar + Title** 三位一体可自由选择 |
 | 数据存储     | 仅 YAML     | 💾 **YAML / SQLite / MySQL** 三引擎，自带连接池       |
@@ -41,11 +41,12 @@
 - **独立开关** —— 单个池可随时启用/禁用，不影响其他池运行
 - **权限控制** —— 每个池可设置独立进入权限，实现 VIP 专属池等场景
 
-### 🎁 四维奖励体系
+### 🎁 五类奖励体系
 
 - **经验奖励** —— 支持随机/固定模式，可触发经验修补
 - **金币奖励** —— 通过 Vault 发放，支持随机/固定模式
 - **点券奖励** —— 通过 PlayerPoints 发放，支持随机/固定模式
+- **物品奖励** —— 支持加权抽取、随机数量、每日次数上限和完整物品元数据
 - **自定义命令** —— 周期性对池内玩家执行任意命令，想象力无限
 
 每种奖励均可独立设置：**发放间隔、随机范围、固定数值、每日上限、倍率**。
@@ -143,6 +144,10 @@
 | `/yafk set <ID> <属性> <值>` | 设置池属性 | `yiyunafkpond.admin.edit` |
 | `/yafk toggle <ID>` | 启用/禁用池 | `yiyunafkpond.admin.toggle` |
 | `/yafk tp <ID>` | 传送到池中心 | `yiyunafkpond.admin.tp` |
+| `/yafk item add <ID> <奖励ID> <权重> [最小数量] [最大数量]` | 捕获主手物品并添加奖励 | `yiyunafkpond.admin.item` |
+| `/yafk item remove <ID> <奖励ID>` | 删除物品奖励 | `yiyunafkpond.admin.item` |
+| `/yafk item list <ID>` | 查看物品奖励配置 | `yiyunafkpond.admin.item` |
+| `/yafk item test <ID> [玩家]` | 测试发放一次物品奖励 | `yiyunafkpond.admin.item` |
 
 ### 📊 统计与数据
 
@@ -201,6 +206,19 @@
 | `enabled` | 是否启用 | `/yafk set pool1 enabled true` |
 | `enterMessage` | 进入消息 | `/yafk set pool1 enterMessage &a欢迎!` |
 | `leaveMessage` | 离开消息 | `/yafk set pool1 leaveMessage &c再见!` |
+
+#### 🎁 物品奖励
+
+| 属性 | 说明 | 示例 |
+|------|------|------|
+| `itemEnabled` | 是否启用物品奖励 | `/yafk set pool1 itemEnabled true` |
+| `itemInterval` | 抽取周期（秒） | `/yafk set pool1 itemInterval 60` |
+| `itemRolls` | 每周期抽取次数（1-100） | `/yafk set pool1 itemRolls 1` |
+| `itemChance` | 每次抽取触发概率（0-100） | `/yafk set pool1 itemChance 25` |
+| `itemMaxDaily` | 每人每日成功抽取次数（0 为无限制） | `/yafk set pool1 itemMaxDaily 20` |
+| `itemOverflow` | 背包溢出策略（skip/drop） | `/yafk set pool1 itemOverflow skip` |
+
+`ponds.yml` 中的物品条目支持两种来源：`minecraft` 用于手写原版物品，`captured` 用于保存游戏内捕获的完整 `ItemStack`。捕获物品时把目标物品拿在主手，执行 `item add`；附魔、名称、Lore、CustomModelData 和 PDC 等元数据会通过 Bukkit 原生序列化保留。条目 `weight` 是相对权重，不必相加等于 100；`amount.min/max` 控制一次中奖数量，单次最多 2304 个，防止误配置造成瞬时大量实体或物品栈。
 
 ***
 
@@ -325,6 +343,25 @@ ponds:
     pointRandomMax: 5.0
     pointMaxDaily: 100.0
 
+    itemReward:
+      schemaVersion: 1
+      enabled: true
+      interval: 60
+      selection:
+        mode: weighted
+        rolls: 1
+        chance: 100.0
+      maxSuccessfulRollsDaily: 20
+      overflow: skip
+      entries:
+        bread:
+          enabled: true
+          weight: 70
+          amount: { min: 1, max: 3 }
+          source:
+            type: minecraft
+            material: BREAD
+
     requiredPermission: "yiyunafkpond.pool.vip"
 
     commands:
@@ -401,12 +438,14 @@ YiyunAFKpond
 | `yiyunafkpond.admin.stats`     | 查看统计     | OP  |
 | `yiyunafkpond.admin.reset`     | 重置玩家数据   | OP  |
 | `yiyunafkpond.admin.debug`     | 调试模式     | OP  |
+| `yiyunafkpond.admin.item`      | 管理物品奖励   | OP  |
 | `yiyunafkpond.bypass.teleport` | 绕过传送拦截   | OP  |
 | `yiyunafkpond.bypass.ip`       | 绕过同 IP 限制 | OP  |
 | `yiyunafkpond.pool.*`          | 进入所有池    | OP  |
 | `yiyunafkpond.reward.money`    | 获得金币奖励   | 所有人 |
 | `yiyunafkpond.reward.point`    | 获得点券奖励   | 所有人 |
 | `yiyunafkpond.reward.commands` | 获得命令奖励   | 所有人 |
+| `yiyunafkpond.reward.item`     | 获得物品奖励   | 所有人 |
 | `yiyunafkpond.performance`     | 性能监控     | OP  |
 
 ***

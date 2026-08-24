@@ -38,6 +38,7 @@ public class CommandManager implements CommandExecutor {
         registerSubCommand(new StatsCommand(plugin));
         registerSubCommand(new PlayerSubCommand(plugin));
         registerSubCommand(new PerformanceCommand(plugin));
+        registerSubCommand(new ItemCommand(plugin));
         
         plugin.getLogger().info("已注册 " + subCommands.size() + " 个子命令!");
     }

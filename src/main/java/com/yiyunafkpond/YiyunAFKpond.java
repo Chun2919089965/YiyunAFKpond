@@ -66,10 +66,12 @@ public class YiyunAFKpond extends JavaPlugin {
         playerMessageActionbar = configManager.getConfig().getString("display.player-message-mode", "chat").equalsIgnoreCase("actionbar");
 
         String storageType = configManager.getConfig().getString("storage.type", "yaml");
-        if (storageType.equals("mysql")) {
+        boolean useConnectionPool = configManager.getConfig()
+                .getBoolean("storage.mysql.useConnectionPool", true);
+        if (storageType.equalsIgnoreCase("mysql") || storageType.equalsIgnoreCase("sqlite")) {
             LibraryLoader libraryLoader = new LibraryLoader(this);
-            if (!libraryLoader.loadHikariCP()) {
-                getLogger().warning("HikariCP 加载失败，将使用传统JDBC连接");
+            if (!libraryLoader.loadStorageLibraries(storageType, useConnectionPool)) {
+                getLogger().warning("数据库依赖加载失败，数据库存储将回退为 YAML");
             }
         }
 
@@ -145,6 +147,7 @@ public class YiyunAFKpond extends JavaPlugin {
         saveData();
         shutdownSchedulers();
         dataManager.shutdown();
+        LibraryLoader.closeClassLoader();
 
         if (bStatsManager != null) {
             bStatsManager.shutdown();

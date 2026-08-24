@@ -1,5 +1,6 @@
 package com.yiyunafkpond.pond;
 
+import com.yiyunafkpond.reward.item.ItemRewardSettings;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -24,6 +25,7 @@ public class Pond {
     private boolean expEnabled;         // 是否启用经验奖励
     private boolean moneyEnabled;       // 是否启用金币奖励
     private boolean pointEnabled;       // 是否启用点券奖励
+    private final ItemRewardSettings itemRewardSettings;
     
     private Map<String, Double> customRewards;  // 自定义奖励
     
@@ -88,6 +90,7 @@ public class Pond {
         this.expEnabled = true;
         this.moneyEnabled = true;
         this.pointEnabled = false;  // 点券默认关闭
+        this.itemRewardSettings = new ItemRewardSettings();
         
         // 经验默认值
         this.expDistributionMode = "interval";
@@ -490,6 +493,10 @@ public class Pond {
     
     public void setPointEnabled(boolean pointEnabled) {
         this.pointEnabled = pointEnabled;
+    }
+
+    public ItemRewardSettings getItemRewardSettings() {
+        return itemRewardSettings;
     }
     
     public List<String> getCommands() {

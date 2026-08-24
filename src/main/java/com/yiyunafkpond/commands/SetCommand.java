@@ -2,6 +2,7 @@ package com.yiyunafkpond.commands;
 
 import com.yiyunafkpond.YiyunAFKpond;
 import com.yiyunafkpond.pond.Pond;
+import com.yiyunafkpond.reward.item.ItemRewardSettings;
 import org.bukkit.command.CommandSender;
 
 import java.util.*;
@@ -14,6 +15,7 @@ public class SetCommand implements SubCommand {
             "&#ADD8E6  经验: expEnabled, expDistributionMode, expInterval, expRewardMode, expRandomMin, expRandomMax, expFixedAmount, expMaxDaily, expApplyMending, xpRate",
             "&#ADD8E6  金币: moneyEnabled, moneyRewardMode, moneyRandomMin, moneyRandomMax, moneyFixedAmount, moneyInterval, moneyMaxDaily, moneyRate",
             "&#ADD8E6  点券: pointEnabled, pointRewardMode, pointRandomMin, pointRandomMax, pointFixedAmount, pointInterval, pointMaxDaily, pointRate",
+            "&#ADD8E6  物品: itemEnabled, itemInterval, itemRolls, itemChance, itemMaxDaily, itemOverflow",
             "&#ADD8E6  命令: commands, commandInterval",
             "&#ADD8E6  其他: requiredPermission, enabled, enterMessage, leaveMessage",
             "&#ADD8E6  消息: expRewardMessage, moneyRewardMessage, pointRewardMessage, expLimitMessage, moneyLimitMessage, pointLimitMessage"
@@ -21,6 +23,7 @@ public class SetCommand implements SubCommand {
 
     private static final Set<String> RESTART_PROPERTIES = Set.of(
             "expenabled", "moneyenabled", "pointenabled",
+            "itemenabled", "iteminterval", "itemrolls", "itemchance", "itemmaxdaily", "itemoverflow",
             "expdistributionmode", "expinterval", "moneyinterval", "pointinterval", "commandinterval",
             "enabled",
             "moneyrandommin", "moneyrandommax", "moneyfixedamount", "moneyrewardmode",
@@ -71,6 +74,38 @@ public class SetCommand implements SubCommand {
         map.put("pointmaxdaily", (pond, v) -> setDoubleVal(pond::getPointMaxDaily, pond::setPointMaxDaily, v, 0, "每日点券上限不能为负数！"));
         map.put("pointrate", (pond, v) -> setDoubleVal(pond::getPointRate, pond::setPointRate, v, 0, "点券倍率不能为负数！"));
 
+        map.put("itemenabled", (pond, v) -> setBoolVal(
+                () -> pond.getItemRewardSettings().isEnabled(),
+                enabled -> pond.getItemRewardSettings().setEnabled(enabled), v));
+        map.put("iteminterval", (pond, v) -> setLongVal(
+                () -> pond.getItemRewardSettings().getIntervalSeconds(),
+                interval -> pond.getItemRewardSettings().setIntervalSeconds(interval),
+                v, 1, "物品奖励间隔必须大于 0 秒！"));
+        map.put("itemrolls", (pond, v) -> setIntVal(
+                () -> pond.getItemRewardSettings().getRolls(),
+                rolls -> pond.getItemRewardSettings().setRolls(rolls),
+                v, 1, "每个周期至少抽取 1 次物品奖励！"));
+        map.put("itemchance", (pond, v) -> setBoundedDoubleVal(
+                () -> pond.getItemRewardSettings().getChance(),
+                chance -> pond.getItemRewardSettings().setChance(chance),
+                v, 0.0, 100.0, "物品奖励触发概率必须在 0 到 100 之间！"));
+        map.put("itemmaxdaily", (pond, v) -> setIntVal(
+                () -> pond.getItemRewardSettings().getMaxSuccessfulRollsDaily(),
+                max -> pond.getItemRewardSettings().setMaxSuccessfulRollsDaily(max),
+                v, 0, "每日物品成功抽取次数不能为负数！"));
+        map.put("itemoverflow", (pond, v) -> {
+            ItemRewardSettings settings = pond.getItemRewardSettings();
+            ItemRewardSettings.OverflowPolicy policy;
+            try {
+                policy = ItemRewardSettings.OverflowPolicy.valueOf(v.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("背包溢出策略只能是 skip 或 drop！");
+            }
+            String old = settings.getOverflowPolicy().name().toLowerCase(Locale.ROOT);
+            settings.setOverflowPolicy(policy);
+            return old;
+        });
+
         map.put("commandinterval", (pond, v) -> setLongVal(pond::getCommandInterval, pond::setCommandInterval, v, 1, "命令间隔必须大于0秒！"));
         map.put("requiredpermission", (pond, v) -> {
             String old = pond.getRequiredPermission() != null ? pond.getRequiredPermission() : "null";
@@ -97,9 +132,22 @@ public class SetCommand implements SubCommand {
     }
 
     private static String setBoolVal(java.util.function.Supplier<Boolean> getter, java.util.function.Consumer<Boolean> setter, String value) {
+        if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
+            throw new IllegalArgumentException("布尔值只能是 true 或 false！");
+        }
         String old = String.valueOf(getter.get());
         setter.accept(Boolean.parseBoolean(value));
         return old;
+    }
+
+    private static String setIntVal(java.util.function.Supplier<Integer> getter,
+                                    java.util.function.Consumer<Integer> setter, String value,
+                                    int min, String errorMsg) {
+        int old = getter.get();
+        int parsed = Integer.parseInt(value);
+        if (parsed < min) throw new IllegalArgumentException(errorMsg);
+        setter.accept(parsed);
+        return String.valueOf(old);
     }
 
     private static String setLongVal(java.util.function.Supplier<Long> getter, java.util.function.Consumer<Long> setter, String value, long min, String errorMsg) {
@@ -114,6 +162,18 @@ public class SetCommand implements SubCommand {
         double old = getter.get();
         double parsed = Double.parseDouble(value);
         if (parsed < min) throw new IllegalArgumentException(errorMsg);
+        setter.accept(parsed);
+        return String.valueOf(old);
+    }
+
+    private static String setBoundedDoubleVal(java.util.function.Supplier<Double> getter,
+                                              java.util.function.Consumer<Double> setter, String value,
+                                              double min, double max, String errorMsg) {
+        double old = getter.get();
+        double parsed = Double.parseDouble(value);
+        if (!Double.isFinite(parsed) || parsed < min || parsed > max) {
+            throw new IllegalArgumentException(errorMsg);
+        }
         setter.accept(parsed);
         return String.valueOf(old);
     }

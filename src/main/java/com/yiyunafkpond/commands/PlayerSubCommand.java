@@ -77,6 +77,7 @@ public class PlayerSubCommand implements SubCommand {
             data.removePoolTodayExp(pondId);
             data.removePoolTodayMoney(pondId);
             data.removePoolTodayPoint(pondId);
+            data.removePoolTodayItemRolls(pondId);
             plugin.getDataManager().savePlayerData(data);
             plugin.sendPlayerMessage(sender, "&#87CEEB已清除玩家 &#B0E0E6" + target.getName() + " &#87CEEB在池 &#B0E0E6" + pondId + " &#87CEEB的数据");
         } else {

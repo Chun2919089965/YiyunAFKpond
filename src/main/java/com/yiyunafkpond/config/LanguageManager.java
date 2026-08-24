@@ -8,7 +8,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class LanguageManager {
@@ -40,6 +42,15 @@ public class LanguageManager {
         }
 
         messages = YamlConfiguration.loadConfiguration(messagesFile);
+        try (InputStream defaultsStream = plugin.getResource("messages.yml")) {
+            if (defaultsStream != null) {
+                FileConfiguration defaults = YamlConfiguration.loadConfiguration(
+                        new InputStreamReader(defaultsStream, StandardCharsets.UTF_8));
+                messages.setDefaults(defaults);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("无法加载内置消息默认值: " + e.getMessage());
+        }
         plugin.getLogger().info("已加载消息配置文件: messages.yml");
     }
 

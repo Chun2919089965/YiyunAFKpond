@@ -40,6 +40,43 @@ ponds:
     pointRandomMin: 1.0        # 随机最小值
     pointRandomMax: 5.0        # 随机最大值
     pointMaxDaily: 100.0       # 每日上限 (0=无上限)
+
+    # ===== 物品奖励 =====
+    # 每个周期独立进行 rolls 次抽取；每次先判定 chance，再按条目 weight 加权选择。
+    # maxSuccessfulRollsDaily 只统计实际成功放入背包或掉落的奖励，0 表示不限制。
+    itemReward:
+      schemaVersion: 1
+      enabled: false
+      interval: 60             # 抽取周期(秒)
+      selection:
+        mode: weighted
+        rolls: 1               # 每个周期抽取次数
+        chance: 100.0          # 每次抽取的触发概率(0-100)
+      maxSuccessfulRollsDaily: 20
+      overflow: skip           # skip=背包放不下则跳过；drop=多余物品掉落在玩家脚下
+      entries:
+        bread:
+          enabled: true
+          weight: 70.0
+          amount:
+            min: 1
+            max: 3
+          source:
+            type: minecraft
+            material: BREAD
+          meta:
+            displayName: "&#FFD966挂机面包"
+            lore:
+              - "&#B0E0E6来自挂机池的补给"
+        golden_apple:
+          enabled: true
+          weight: 5.0
+          amount:
+            min: 1
+            max: 1
+          source:
+            type: minecraft
+            material: GOLDEN_APPLE
     
     # ===== 权限设置 =====
     requiredPermission: null   # 进入权限 (null=无需权限)

@@ -5,6 +5,8 @@ import com.yiyunafkpond.YiyunAFKpond;
 import com.yiyunafkpond.constants.Constants;
 import com.yiyunafkpond.data.PlayerData;
 import com.yiyunafkpond.pond.Pond;
+import com.yiyunafkpond.reward.item.ItemRewardService;
+import com.yiyunafkpond.reward.item.ItemRewardSettings;
 import com.yiyunafkpond.scheduler.FoliaSchedulerAdapter;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
@@ -23,11 +25,14 @@ public class RewardManager {
     private final Map<String, WrappedTask> moneyTasks = new ConcurrentHashMap<>();
     private final Map<String, WrappedTask> pointTasks = new ConcurrentHashMap<>();
     private final Map<String, WrappedTask> commandTasks = new ConcurrentHashMap<>();
+    private final Map<String, WrappedTask> itemTasks = new ConcurrentHashMap<>();
 
     private final Map<String, Long> expNextEpochSec = new ConcurrentHashMap<>();
     private final Map<String, Long> moneyNextEpochSec = new ConcurrentHashMap<>();
     private final Map<String, Long> pointNextEpochSec = new ConcurrentHashMap<>();
     private final Map<String, Long> commandNextEpochSec = new ConcurrentHashMap<>();
+    private final Map<String, Long> itemNextEpochSec = new ConcurrentHashMap<>();
+    private final ItemRewardService itemRewardService;
 
     private final Map<UUID, Long> lastLimitMessageTime = new ConcurrentHashMap<>();
     private static final long LIMIT_MESSAGE_COOLDOWN_MS = 30000L;
@@ -36,6 +41,7 @@ public class RewardManager {
 
     public RewardManager(YiyunAFKpond plugin) {
         this.plugin = plugin;
+        this.itemRewardService = new ItemRewardService(plugin);
         registerRewardType(new XpReward(plugin));
         registerRewardType(new MoneyReward(plugin));
         registerRewardType(new PointReward(plugin));
@@ -79,11 +85,13 @@ public class RewardManager {
         cancelAllTasks(moneyTasks);
         cancelAllTasks(pointTasks);
         cancelAllTasks(commandTasks);
+        cancelAllTasks(itemTasks);
 
         expNextEpochSec.clear();
         moneyNextEpochSec.clear();
         pointNextEpochSec.clear();
         commandNextEpochSec.clear();
+        itemNextEpochSec.clear();
 
         if (afkTimeTask != null) {
             afkTimeTask.cancel();
@@ -111,16 +119,19 @@ public class RewardManager {
         cancelTask(moneyTasks, poolId);
         cancelTask(pointTasks, poolId);
         cancelTask(commandTasks, poolId);
+        cancelTask(itemTasks, poolId);
 
         expNextEpochSec.remove(poolId);
         moneyNextEpochSec.remove(poolId);
         pointNextEpochSec.remove(poolId);
         commandNextEpochSec.remove(poolId);
+        itemNextEpochSec.remove(poolId);
 
         startExpTask(pond);
         startMoneyTask(pond);
         startPointTask(pond);
         startCommandTask(pond);
+        startItemTask(pond);
 
         plugin.debug("挂机池 " + poolId + " 奖励任务启动完成");
     }
@@ -136,11 +147,13 @@ public class RewardManager {
         cancelTask(moneyTasks, poolId);
         cancelTask(pointTasks, poolId);
         cancelTask(commandTasks, poolId);
+        cancelTask(itemTasks, poolId);
 
         expNextEpochSec.remove(poolId);
         moneyNextEpochSec.remove(poolId);
         pointNextEpochSec.remove(poolId);
         commandNextEpochSec.remove(poolId);
+        itemNextEpochSec.remove(poolId);
     }
 
     public void restartAllRewardTasks() {
@@ -357,6 +370,40 @@ public class RewardManager {
         commandTasks.put(poolId, task);
     }
 
+    private void startItemTask(Pond pond) {
+        String poolId = pond.getId();
+        cancelTask(itemTasks, poolId);
+
+        ItemRewardSettings settings = pond.getItemRewardSettings();
+        if (!settings.isEnabled() || !settings.hasEnabledEntries()) return;
+
+        long intervalSec = settings.getIntervalSeconds();
+        if (intervalSec <= 0L) {
+            plugin.getLogger().warning("物品奖励间隔 <= 0，跳过 - 池ID: " + poolId);
+            return;
+        }
+
+        long intervalTicks = intervalSec * Constants.TICKS_PER_SECOND;
+        itemNextEpochSec.put(poolId, epochSec() + intervalSec);
+        FoliaSchedulerAdapter adapter = plugin.getSchedulerManager().getAdapter();
+        WrappedTask task = adapter.runSyncRepeating(() -> {
+            for (Player player : getPlayersInPond(pond)) {
+                adapter.runAtEntity(player, () -> {
+                    PlayerData data = plugin.getDataManager().getPlayerDataIfLoaded(player.getUniqueId());
+                    if (data == null || !isEligibleForReward(player, data, pond)) return;
+                    data.checkAndResetDailyData();
+                    if (itemRewardService.processScheduledRolls(player, data, pond)) {
+                        data.setLastRewardTime(System.currentTimeMillis());
+                        plugin.getDataManager().queuePlayerDataSave(data);
+                        plugin.getUiManager().markDirty(player);
+                    }
+                });
+            }
+            itemNextEpochSec.put(poolId, epochSec() + intervalSec);
+        }, 1L, intervalTicks);
+        itemTasks.put(poolId, task);
+    }
+
     private long capReward(long amount, long todayTotal, long serverMax, long todayPool, long poolMax,
                            String serverLimitMsg, String poolLimitMsg, Player player) {
         if (serverMax > 0 && todayTotal >= serverMax) {
@@ -516,11 +563,16 @@ public class RewardManager {
         return rewardTypes;
     }
 
+    public ItemRewardService getItemRewardService() {
+        return itemRewardService;
+    }
+
     public int getNextRemainingSeconds(String poolId) {
         long now = epochSec();
         int best = Integer.MAX_VALUE;
 
-        for (Map<String, Long> nextMap : List.of(expNextEpochSec, moneyNextEpochSec, pointNextEpochSec, commandNextEpochSec)) {
+        for (Map<String, Long> nextMap : List.of(expNextEpochSec, moneyNextEpochSec, pointNextEpochSec,
+                commandNextEpochSec, itemNextEpochSec)) {
             Long time = nextMap.get(poolId);
             if (time != null) best = Math.min(best, (int) Math.max(0L, time - now));
         }

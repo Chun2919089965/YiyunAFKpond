@@ -81,6 +81,7 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
                                 "moneyinterval", "moneymaxdaily", "moneyrate",
                                 "pointenabled", "pointrewardmode", "pointrandommin", "pointrandommax", "pointfixedamount",
                                 "pointinterval", "pointmaxdaily", "pointrate",
+                                "itemenabled", "iteminterval", "itemrolls", "itemchance", "itemmaxdaily", "itemoverflow",
                                 "commandinterval",
                                 "requiredpermission", "enabled",
                                 "entermessage", "leavemessage",
@@ -101,9 +102,31 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
                                 completions.addAll(List.of("random", "fixed"));
                             } else if (property.equals("requiredpermission")) {
                                 completions.add("null");
+                            } else if (property.equals("itemoverflow")) {
+                                completions.addAll(List.of("skip", "drop"));
                             } else if (property.equals("enabled") || property.equals("expapplymending")
-                                    || property.equals("expenabled") || property.equals("moneyenabled") || property.equals("pointenabled")) {
+                                    || property.equals("expenabled") || property.equals("moneyenabled")
+                                    || property.equals("pointenabled") || property.equals("itemenabled")) {
                                 completions.addAll(List.of("true", "false"));
+                            }
+                        }
+                        break;
+                    case "item":
+                        if (args.length == 2) {
+                            addMatches(completions, List.of("add", "remove", "list", "test"), args[1]);
+                        } else if (args.length == 3) {
+                            addMatches(completions, pondIds(), args[2]);
+                        } else if (args.length == 4) {
+                            String itemAction = args[1].toLowerCase();
+                            if (itemAction.equals("remove")) {
+                                var pond = plugin.getPondManager().getPond(args[2].toLowerCase());
+                                if (pond != null) {
+                                    addMatches(completions, pond.getItemRewardSettings().getEntries().stream()
+                                            .map(entry -> entry.getId()).toList(), args[3]);
+                                }
+                            } else if (itemAction.equals("test")) {
+                                addMatches(completions, plugin.getServer().getOnlinePlayers().stream()
+                                        .map(Player::getName).toList(), args[3]);
                             }
                         }
                         break;
@@ -192,5 +215,16 @@ public class YiyunAFKpondTabCompleter implements TabCompleter {
         }
         
         return completions;
+    }
+
+    private List<String> pondIds() {
+        return plugin.getPondManager().getPonds().stream().map(pond -> pond.getId()).toList();
+    }
+
+    private static void addMatches(List<String> completions, List<String> candidates, String input) {
+        String partial = input.toLowerCase();
+        for (String candidate : candidates) {
+            if (candidate.toLowerCase().startsWith(partial)) completions.add(candidate);
+        }
     }
 }
